@@ -54,14 +54,20 @@ class InterframeEncoder(AbstractEncoder):
         if self._prev_context is None:
             # First frame: encode as keyframe
             payload = self._interface.encode_keyframe(current_context)
+            # Decode back to get reconstructed context (avoid error accumulation)
+            reconstructed_context = self._interface.decode_keyframe(payload)
         else:
             # Subsequent frames: encode as delta from previous
             payload = self._interface.encode_interframe(
                 self._prev_context, current_context
             )
+            # Decode back to get reconstructed context (avoid error accumulation)
+            reconstructed_context = self._interface.decode_interframe(
+                payload, self._prev_context
+            )
 
-        # Update the previous context for next frame
-        self._prev_context = current_context
+        # Use reconstructed context as previous for next frame
+        self._prev_context = reconstructed_context
 
         yield payload
 
