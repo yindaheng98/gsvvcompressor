@@ -1,4 +1,4 @@
-from typing import Iterator, Optional, Type
+from typing import Iterator, Optional
 
 from gaussian_splatting import GaussianModel
 
@@ -20,14 +20,14 @@ class InterframeDecoder(AbstractDecoder):
     def __init__(
         self,
         deserializer: AbstractDeserializer,
-        interface: Type[InterframeCodecInterface],
+        interface: InterframeCodecInterface,
     ):
         """
         Initialize the inter-frame decoder.
 
         Args:
             deserializer: The deserializer to use for converting bytes to Payload.
-            interface: The InterframeCodecInterface class that provides decoding methods.
+            interface: The InterframeCodecInterface instance that provides decoding methods.
         """
         super().__init__(deserializer)
         self._interface = interface

@@ -1,11 +1,11 @@
-from typing import Iterator, Optional, Type
+from typing import Iterator, Optional
 
 from gaussian_splatting import GaussianModel
 
 from ..encoder import AbstractEncoder
 from ..payload import Payload
 from ..serializer import AbstractSerializer
-from .interface import InterframeCodecContext, InterframeCodecConfig, InterframeCodecInterface
+from .interface import InterframeCodecContext, InterframeEncoderInitConfig, InterframeCodecInterface
 
 
 class InterframeEncoder(AbstractEncoder):
@@ -20,15 +20,15 @@ class InterframeEncoder(AbstractEncoder):
     def __init__(
         self,
         serializer: AbstractSerializer,
-        interface: Type[InterframeCodecInterface],
-        init_config: InterframeCodecConfig,
+        interface: InterframeCodecInterface,
+        init_config: InterframeEncoderInitConfig,
     ):
         """
         Initialize the inter-frame encoder.
 
         Args:
             serializer: The serializer to use for converting Payload to bytes.
-            interface: The InterframeCodecInterface class that provides encoding methods.
+            interface: The InterframeCodecInterface instance that provides encoding methods.
             init_config: Configuration parameters for keyframe initialization.
         """
         super().__init__(serializer)
