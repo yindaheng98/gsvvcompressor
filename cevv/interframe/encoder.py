@@ -5,7 +5,7 @@ from gaussian_splatting import GaussianModel
 from ..encoder import AbstractEncoder
 from ..payload import Payload
 from ..serializer import AbstractSerializer
-from .interface import InterframeContext, InterframeInterface
+from .interface import InterframeContext, InterframeInitConfig, InterframeInterface
 
 
 class InterframeEncoder(AbstractEncoder):
@@ -21,6 +21,7 @@ class InterframeEncoder(AbstractEncoder):
         self,
         serializer: AbstractSerializer,
         interface: Type[InterframeInterface],
+        init_config: InterframeInitConfig,
     ):
         """
         Initialize the inter-frame encoder.
@@ -28,9 +29,11 @@ class InterframeEncoder(AbstractEncoder):
         Args:
             serializer: The serializer to use for converting Payload to bytes.
             interface: The InterframeInterface class that provides encoding methods.
+            init_config: Configuration parameters for keyframe initialization.
         """
         super().__init__(serializer)
         self._interface = interface
+        self._init_config = init_config
         self._prev_context: Optional[InterframeContext] = None
 
     def pack(self, frame: GaussianModel) -> Iterator[Payload]:
@@ -48,7 +51,7 @@ class InterframeEncoder(AbstractEncoder):
         """
         if self._prev_context is None:
             # First frame: convert and encode as keyframe
-            current_context = self._interface.keyframe_to_context(frame)
+            current_context = self._interface.keyframe_to_context(frame, self._init_config)
             payload = self._interface.encode_keyframe(current_context)
             # Decode back to get reconstructed context (avoid error accumulation)
             reconstructed_context = self._interface.decode_keyframe(payload)

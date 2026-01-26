@@ -7,6 +7,18 @@ from ..payload import Payload
 
 
 @dataclass
+class InterframeInitConfig:
+    """
+    Configuration parameters for initializing inter-frame context from a keyframe.
+
+    This dataclass holds the initialization settings needed when converting
+    a keyframe to context. Subclasses should define specific fields for
+    their encoding scheme.
+    """
+    pass
+
+
+@dataclass
 class InterframeContext:
     """
     Context data for inter-frame encoding/decoding.
@@ -89,12 +101,13 @@ class InterframeInterface(ABC):
 
     @staticmethod
     @abstractmethod
-    def keyframe_to_context(frame: GaussianModel) -> InterframeContext:
+    def keyframe_to_context(frame: GaussianModel, init_config: InterframeInitConfig) -> InterframeContext:
         """
         Convert a keyframe to a Context.
 
         Args:
             frame: The GaussianModel frame to convert.
+            init_config: Configuration parameters for initialization.
 
         Returns:
             The corresponding Context representation.
