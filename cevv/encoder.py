@@ -1,0 +1,61 @@
+from abc import ABC, abstractmethod
+from typing import Optional
+
+from gaussian_splatting import GaussianModel
+
+
+class Encoder(ABC):
+    """
+    Abstract base class for compression algorithms.
+
+    Subclasses must implement the `decode_frame` method to define
+    the specific compression logic for GaussianModel sequences.
+    """
+
+    @abstractmethod
+    def decode_frame(self, frame: Optional[GaussianModel]) -> tuple[bytes, bool]:
+        """
+        Encode a single frame of GaussianModel.
+
+        Args:
+            frame: A GaussianModel instance to encode, or None to flush
+                   remaining encoded data from the internal buffer.
+
+        Returns:
+            A tuple of (encoded_bytes, is_finished):
+            - encoded_bytes: The encoded byte data (can be empty, i.e., length 0).
+            - is_finished: True if all previously input GaussianModels have been
+                           fully encoded; False if more data is pending.
+        """
+        pass
+
+    def decode_frames(self, frames: list[GaussianModel]) -> bytes:
+        """
+        Encode a sequence of GaussianModel frames.
+
+        This method calls `decode_frame` for each frame in the input list,
+        concatenates all the encoded bytes, and continues calling `decode_frame`
+        with None until the encoder signals completion.
+
+        Args:
+            frames: A list of GaussianModel instances to encode.
+
+        Returns:
+            The concatenated encoded bytes for the entire sequence.
+        """
+        result = bytearray()
+
+        # Encode each frame in the sequence
+        for frame in frames:
+            encoded_bytes, is_finished = self.decode_frame(frame)
+            result.extend(encoded_bytes)
+
+        # After the last frame, check if encoding is complete
+        # If not, continue calling decode_frame with None until finished
+        _, is_finished = self.decode_frame(None) if not frames else (b'', is_finished)
+
+        while not is_finished:
+            encoded_bytes, is_finished = self.decode_frame(None)
+            result.extend(encoded_bytes)
+
+        return bytes(result)
