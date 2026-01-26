@@ -1,58 +1,114 @@
 from abc import ABC, abstractmethod
-from typing import Iterator, Optional
+from typing import Iterator
 
 from gaussian_splatting import GaussianModel
+
+from .payload import Payload
+from .serializer import AbstractSerializer
 
 
 class AbstractEncoder(ABC):
     """
     Abstract base class for compression algorithms.
 
-    Subclasses must implement the `encode_frame` method to define
-    the specific compression logic for GaussianModel sequences.
+    This encoder uses a two-stage process:
+    1. Pack frames into Payload objects (via `pack`)
+    2. Serialize Payloads to bytes (via the serializer)
+
+    Subclasses must implement `pack` and `flush_pack`, and provide a serializer.
+    This design separates frame packing logic from serialization format.
     """
 
+    def __init__(self, serializer: AbstractSerializer):
+        """
+        Initialize the encoder.
+
+        Args:
+            serializer: The serializer to use for converting Payload to bytes.
+        """
+        self._serializer = serializer
+
     @abstractmethod
-    def encode_frame(self, frame: Optional[GaussianModel]) -> tuple[bytes, bool]:
+    def pack(self, frame: GaussianModel) -> Iterator[Payload]:
+        """
+        Pack a single frame into Payload objects.
+
+        This method transforms the input frame into Payload objects that
+        can be serialized.
+
+        Args:
+            frame: A GaussianModel instance to pack.
+
+        Yields:
+            Packed Payload instances. May yield zero, one, or multiple
+            payloads. When the iterator is exhausted, all payloads for this
+            frame have been yielded.
+        """
+        pass
+
+    @abstractmethod
+    def flush_pack(self) -> Iterator[Payload]:
+        """
+        Flush any remaining buffered payloads from the packing stage.
+
+        This method should be called after all frames have been packed
+        to ensure any remaining buffered payloads are output.
+
+        Yields:
+            Remaining buffered Payload instances. May yield zero, one, or
+            multiple payloads until all buffered data has been flushed.
+        """
+        pass
+
+    def encode_frame(self, frame: GaussianModel) -> Iterator[bytes]:
         """
         Encode a single frame of GaussianModel.
 
-        Args:
-            frame: A GaussianModel instance to encode, or None to flush
-                   remaining encoded data from the internal buffer.
+        This method packs the frame into Payloads and then serializes them.
 
-        Returns:
-            A tuple of (encoded_bytes, is_finished):
-            - encoded_bytes: The encoded byte data (can be empty, i.e., length 0).
-            - is_finished: True if all previously input GaussianModels have been
-                           fully encoded; False if more data is pending.
+        Args:
+            frame: A GaussianModel instance to encode.
+
+        Yields:
+            Encoded byte chunks. May yield zero, one, or multiple chunks.
+            When the iterator is exhausted, all data for this frame has been
+            encoded.
         """
-        pass
+        for payload in self.pack(frame):
+            yield from self._serializer.serialize_frame(payload)
+
+    def flush(self) -> Iterator[bytes]:
+        """
+        Flush any remaining buffered data from both packing and serialization.
+
+        This method should be called after all frames have been encoded
+        to ensure any remaining buffered data is output.
+
+        Yields:
+            Remaining buffered byte chunks. May yield zero, one, or multiple
+            chunks until all buffered data has been flushed.
+        """
+        # Flush packing stage and serialize any remaining payloads
+        for payload in self.flush_pack():
+            yield from self._serializer.serialize_frame(payload)
+
+        # Flush serialization stage
+        yield from self._serializer.flush()
 
     def encode_stream(self, stream: Iterator[GaussianModel]) -> Iterator[bytes]:
         """
         Encode a stream of GaussianModel frames.
 
-        This method calls `encode_frame` for each frame from the input iterator,
-        yields encoded bytes as they become available, and continues calling
-        `encode_frame` with None until the encoder signals completion.
+        This method packs each frame and serializes the payloads.
+        It handles the flush logic for both packing and serialization stages.
 
         Args:
             stream: An iterator that yields GaussianModel instances to encode.
 
         Yields:
-            Encoded bytes for each processed frame or flush operation.
+            Encoded bytes for each packed frame or flush operation.
         """
-        is_finished = False
-
-        # Encode each frame from the stream
         for frame in stream:
-            encoded_bytes, is_finished = self.encode_frame(frame)
-            if encoded_bytes:
-                yield encoded_bytes
+            yield from self.encode_frame(frame)
 
-        # Flush remaining data until encoder signals completion
-        while not is_finished:
-            encoded_bytes, is_finished = self.encode_frame(None)
-            if encoded_bytes:
-                yield encoded_bytes
+        yield from self.flush()
