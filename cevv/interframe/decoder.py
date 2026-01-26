@@ -33,6 +33,21 @@ class InterframeDecoder(AbstractDecoder):
         self._interface = interface
         self._prev_context: Optional[InterframeCodecContext] = None
 
+    def create_empty_frame(self) -> GaussianModel:
+        """
+        Create an empty GaussianModel for frame reconstruction.
+
+        This method is called before `context_to_frame` to provide a frame
+        that will be populated with data. Override this method if your
+        GaussianModel contains custom data or attributes that are not part of
+        the standard GaussianModel(), such as additional fields or custom
+        initialization logic.
+
+        Returns:
+            An empty GaussianModel instance.
+        """
+        return GaussianModel()
+
     def unpack(self, payload: Payload) -> Iterator[GaussianModel]:
         """
         Unpack frame(s) from a Payload using inter-frame decoding.
@@ -59,7 +74,8 @@ class InterframeDecoder(AbstractDecoder):
         self._prev_context = current_context
 
         # Convert context back to frame
-        yield self._interface.context_to_frame(current_context)
+        frame = self.create_empty_frame()
+        yield self._interface.context_to_frame(current_context, frame)
 
     def flush_unpack(self) -> Iterator[GaussianModel]:
         """

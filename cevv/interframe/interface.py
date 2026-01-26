@@ -156,14 +156,19 @@ class InterframeCodecInterface(ABC):
         pass
 
     @abstractmethod
-    def context_to_frame(self, context: InterframeCodecContext) -> GaussianModel:
+    def context_to_frame(self, context: InterframeCodecContext, frame: GaussianModel) -> GaussianModel:
         """
         Convert a Context back to a frame.
 
+        This method populates the provided GaussianModel with data from the
+        context and returns it.
+
         Args:
             context: The Context to convert.
+            frame: An empty GaussianModel or one from previous pipeline steps.
+                This frame will be modified in-place with the context data.
 
         Returns:
-            The corresponding GaussianModel frame.
+            The modified GaussianModel with the frame data.
         """
         pass
