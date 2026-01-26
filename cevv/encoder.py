@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Iterator, Optional
 
 from gaussian_splatting import GaussianModel
 
@@ -29,31 +29,30 @@ class Encoder(ABC):
         """
         pass
 
-    def encode_frames(self, frames: list[GaussianModel]) -> bytes:
+    def encode_stream(self, stream: Iterator[GaussianModel]) -> Iterator[bytes]:
         """
-        Encode a sequence of GaussianModel frames.
+        Encode a stream of GaussianModel frames.
 
-        This method calls `encode_frame` for each frame in the input list,
-        concatenates all the encoded bytes, and continues calling `encode_frame`
-        with None until the encoder signals completion.
+        This method calls `encode_frame` for each frame from the input iterator,
+        yields encoded bytes as they become available, and continues calling
+        `encode_frame` with None until the encoder signals completion.
 
         Args:
-            frames: A list of GaussianModel instances to encode.
+            stream: An iterator that yields GaussianModel instances to encode.
 
-        Returns:
-            The concatenated encoded bytes for the entire sequence.
+        Yields:
+            Encoded bytes for each processed frame or flush operation.
         """
-        result = bytearray()
         is_finished = False
 
-        # Encode each frame in the sequence
-        for frame in frames:
+        # Encode each frame from the stream
+        for frame in stream:
             encoded_bytes, is_finished = self.encode_frame(frame)
-            result.extend(encoded_bytes)
+            if encoded_bytes:
+                yield encoded_bytes
 
         # Flush remaining data until encoder signals completion
         while not is_finished:
             encoded_bytes, is_finished = self.encode_frame(None)
-            result.extend(encoded_bytes)
-
-        return bytes(result)
+            if encoded_bytes:
+                yield encoded_bytes
