@@ -7,13 +7,21 @@ from ..payload import Payload
 
 
 @dataclass
-class InterframeCodecConfig:
+class InterframeEncoderInitConfig:
     """
-    Configuration parameters for initializing inter-frame context from a keyframe.
+    Configuration for initializing the encoder when encoding the first frame (keyframe).
 
-    This dataclass holds the initialization settings needed when converting
-    a keyframe to context. Subclasses should define specific fields for
-    their encoding scheme.
+    This dataclass is passed to `keyframe_to_context()` when the encoder processes
+    the first frame. It contains encoder-specific settings that determine how the
+    encoding context is initialized, such as quality settings, compression levels,
+    or algorithm parameters.
+
+    Subclasses should define specific fields for their encoding scheme.
+
+    Note:
+        This config is only used by the encoder during keyframe processing.
+        Configurations shared by both encoder and decoder should be stored
+        in InterframeCodecInterface.
     """
     pass
 
@@ -24,8 +32,16 @@ class InterframeCodecContext:
     Context data for inter-frame encoding/decoding.
 
     This dataclass holds the state information needed to encode/decode
-    frames relative to a reference frame. Subclasses should define
-    specific fields for their encoding scheme.
+    frames relative to a reference frame. Both encoder and decoder
+    maintain their own InterframeCodecContext instances.
+
+    Subclasses should define specific fields for their encoding scheme.
+
+    Note:
+        This is for encoder/decoder runtime state (e.g., reference frame data,
+        accumulated statistics). Encoder initialization config should be stored
+        in InterframeEncoderInitConfig. Shared configurations should be stored
+        in InterframeCodecInterface.
     """
     pass
 
@@ -37,13 +53,20 @@ class InterframeCodecInterface(ABC):
     This interface defines the methods required to implement inter-frame
     compression, where frames are encoded as differences from previous frames.
 
-    All methods are abstract static methods that must be implemented by
-    concrete subclasses.
+    Design Guidelines:
+        - InterframeCodecInterface: Store configurations shared by both encoder
+          and decoder (e.g., algorithm parameters that affect both encoding and
+          decoding, such as quantization tables or codebook sizes).
+        - InterframeCodecContext: Store encoder/decoder runtime state (e.g.,
+          reference frame data, accumulated statistics). Each side maintains
+          its own context instance.
+        - InterframeEncoderInitConfig: Store encoder initialization config that
+          is passed to `keyframe_to_context()` when encoding the first frame
+          (e.g., quality settings, compression levels).
     """
 
-    @staticmethod
     @abstractmethod
-    def decode_interframe(payload: Payload, prev_context: InterframeCodecContext) -> InterframeCodecContext:
+    def decode_interframe(self, payload: Payload, prev_context: InterframeCodecContext) -> InterframeCodecContext:
         """
         Decode a delta payload to reconstruct the next frame's context.
 
@@ -56,9 +79,8 @@ class InterframeCodecInterface(ABC):
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def encode_interframe(prev_context: InterframeCodecContext, next_context: InterframeCodecContext) -> Payload:
+    def encode_interframe(self, prev_context: InterframeCodecContext, next_context: InterframeCodecContext) -> Payload:
         """
         Encode the difference between two consecutive frames.
 
@@ -71,9 +93,8 @@ class InterframeCodecInterface(ABC):
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def decode_keyframe(payload: Payload) -> InterframeCodecContext:
+    def decode_keyframe(self, payload: Payload) -> InterframeCodecContext:
         """
         Decode a keyframe payload to create initial context.
 
@@ -85,9 +106,8 @@ class InterframeCodecInterface(ABC):
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def encode_keyframe(context: InterframeCodecContext) -> Payload:
+    def encode_keyframe(self, context: InterframeCodecContext) -> Payload:
         """
         Encode the first frame as a keyframe.
 
@@ -99,24 +119,27 @@ class InterframeCodecInterface(ABC):
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def keyframe_to_context(frame: GaussianModel, init_config: InterframeCodecConfig) -> InterframeCodecContext:
+    def keyframe_to_context(self, frame: GaussianModel, init_config: InterframeEncoderInitConfig) -> InterframeCodecContext:
         """
         Convert a keyframe to a Context.
 
+        This method is called by the encoder when processing the first frame.
+        The init_config provides encoder-specific settings for initializing
+        the encoding context.
+
         Args:
             frame: The GaussianModel frame to convert.
-            init_config: Configuration parameters for initialization.
+            init_config: Encoder initialization configuration.
 
         Returns:
             The corresponding Context representation.
         """
         pass
 
-    @staticmethod
     @abstractmethod
     def interframe_to_context(
+        self,
         frame: GaussianModel,
         prev_context: InterframeCodecContext,
     ) -> InterframeCodecContext:
@@ -132,9 +155,8 @@ class InterframeCodecInterface(ABC):
         """
         pass
 
-    @staticmethod
     @abstractmethod
-    def context_to_frame(context: InterframeCodecContext) -> GaussianModel:
+    def context_to_frame(self, context: InterframeCodecContext) -> GaussianModel:
         """
         Convert a Context back to a frame.
 
