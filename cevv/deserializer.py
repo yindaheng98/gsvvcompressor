@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Iterator
 
 from .payload import Payload
 
@@ -13,7 +13,7 @@ class AbstractDeserializer(ABC):
     """
 
     @abstractmethod
-    def deserialize_frame(self, data: bytes) -> tuple[List[Payload], bool]:
+    def deserialize_frame(self, data: bytes) -> Iterator[Payload]:
         """
         Deserialize a chunk of bytes to Payload objects.
 
@@ -22,11 +22,10 @@ class AbstractDeserializer(ABC):
                   If the length is 0, it signals the end of the input stream,
                   prompting the deserializer to flush remaining buffered data.
 
-        Returns:
-            A tuple of (payloads, is_finished):
-            - payloads: A list of deserialized Payload instances.
-                        Can be empty if no complete payloads are available yet.
-            - is_finished: True if all previously input bytes have been fully
-                           deserialized; False if more data is pending.
+        Yields:
+            Deserialized Payload instances. May yield zero, one, or multiple
+            payloads depending on available data. When the iterator is exhausted,
+            all complete payloads from this data chunk have been yielded.
+            For flush (data=b""), yields any remaining buffered payloads.
         """
         pass

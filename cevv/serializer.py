@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Iterator, Optional
 
 from .payload import Payload
 
@@ -13,7 +13,7 @@ class AbstractSerializer(ABC):
     """
 
     @abstractmethod
-    def serialize_frame(self, payload: Optional[Payload]) -> tuple[bytes, bool]:
+    def serialize_frame(self, payload: Optional[Payload]) -> Iterator[bytes]:
         """
         Serialize a single Payload object to bytes.
 
@@ -21,10 +21,10 @@ class AbstractSerializer(ABC):
             payload: A Payload instance to serialize, or None to flush
                      remaining data from the internal buffer.
 
-        Returns:
-            A tuple of (serialized_bytes, is_finished):
-            - serialized_bytes: The serialized byte data (can be empty).
-            - is_finished: True if all previously input Payloads have been
-                           fully serialized; False if more data is pending.
+        Yields:
+            Serialized byte chunks. May yield zero, one, or multiple chunks.
+            When the iterator is exhausted, all data for this payload has been
+            serialized. For flush (payload=None), yields any remaining buffered
+            data until fully flushed.
         """
         pass
