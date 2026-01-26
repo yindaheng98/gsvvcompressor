@@ -44,16 +44,14 @@ class Encoder(ABC):
             The concatenated encoded bytes for the entire sequence.
         """
         result = bytearray()
+        is_finished = False
 
         # Encode each frame in the sequence
         for frame in frames:
             encoded_bytes, is_finished = self.decode_frame(frame)
             result.extend(encoded_bytes)
 
-        # After the last frame, check if encoding is complete
-        # If not, continue calling decode_frame with None until finished
-        _, is_finished = self.decode_frame(None) if not frames else (b'', is_finished)
-
+        # Flush remaining data until encoder signals completion
         while not is_finished:
             encoded_bytes, is_finished = self.decode_frame(None)
             result.extend(encoded_bytes)
