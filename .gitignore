@@ -1,3 +1,10 @@
+gaussian_splatting
+reduced_3dgs
+dibrq
+refcolorrestore
+extrinterp
+*.dist-info
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
