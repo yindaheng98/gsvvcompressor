@@ -8,12 +8,12 @@ class Encoder(ABC):
     """
     Abstract base class for compression algorithms.
 
-    Subclasses must implement the `decode_frame` method to define
+    Subclasses must implement the `encode_frame` method to define
     the specific compression logic for GaussianModel sequences.
     """
 
     @abstractmethod
-    def decode_frame(self, frame: Optional[GaussianModel]) -> tuple[bytes, bool]:
+    def encode_frame(self, frame: Optional[GaussianModel]) -> tuple[bytes, bool]:
         """
         Encode a single frame of GaussianModel.
 
@@ -29,12 +29,12 @@ class Encoder(ABC):
         """
         pass
 
-    def decode_frames(self, frames: list[GaussianModel]) -> bytes:
+    def encode_frames(self, frames: list[GaussianModel]) -> bytes:
         """
         Encode a sequence of GaussianModel frames.
 
-        This method calls `decode_frame` for each frame in the input list,
-        concatenates all the encoded bytes, and continues calling `decode_frame`
+        This method calls `encode_frame` for each frame in the input list,
+        concatenates all the encoded bytes, and continues calling `encode_frame`
         with None until the encoder signals completion.
 
         Args:
@@ -48,12 +48,12 @@ class Encoder(ABC):
 
         # Encode each frame in the sequence
         for frame in frames:
-            encoded_bytes, is_finished = self.decode_frame(frame)
+            encoded_bytes, is_finished = self.encode_frame(frame)
             result.extend(encoded_bytes)
 
         # Flush remaining data until encoder signals completion
         while not is_finished:
-            encoded_bytes, is_finished = self.decode_frame(None)
+            encoded_bytes, is_finished = self.encode_frame(None)
             result.extend(encoded_bytes)
 
         return bytes(result)
