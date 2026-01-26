@@ -4,7 +4,7 @@ from typing import Iterator, Optional
 from gaussian_splatting import GaussianModel
 
 
-class Encoder(ABC):
+class AbstractEncoder(ABC):
     """
     Abstract base class for compression algorithms.
 

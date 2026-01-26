@@ -4,7 +4,7 @@ from typing import Iterator, List
 from gaussian_splatting import GaussianModel
 
 
-class Decoder(ABC):
+class AbstractDecoder(ABC):
     """
     Abstract base class for decompression algorithms.
 
