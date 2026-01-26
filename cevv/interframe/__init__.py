@@ -1,10 +1,10 @@
-from .interface import InterframeContext, InterframeInterface
+from .interface import InterframeCodecContext, InterframeCodecInterface
 from .encoder import InterframeEncoder
 from .decoder import InterframeDecoder
 
 __all__ = [
-    'InterframeContext',
-    'InterframeInterface',
+    'InterframeCodecContext',
+    'InterframeCodecInterface',
     'InterframeEncoder',
     'InterframeDecoder',
 ]

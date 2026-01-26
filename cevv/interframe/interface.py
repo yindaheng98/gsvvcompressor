@@ -7,7 +7,7 @@ from ..payload import Payload
 
 
 @dataclass
-class InterframeInitConfig:
+class InterframeCodecConfig:
     """
     Configuration parameters for initializing inter-frame context from a keyframe.
 
@@ -19,7 +19,7 @@ class InterframeInitConfig:
 
 
 @dataclass
-class InterframeContext:
+class InterframeCodecContext:
     """
     Context data for inter-frame encoding/decoding.
 
@@ -30,7 +30,7 @@ class InterframeContext:
     pass
 
 
-class InterframeInterface(ABC):
+class InterframeCodecInterface(ABC):
     """
     Abstract interface for inter-frame encoding/decoding algorithms.
 
@@ -43,7 +43,7 @@ class InterframeInterface(ABC):
 
     @staticmethod
     @abstractmethod
-    def decode_interframe(payload: Payload, prev_context: InterframeContext) -> InterframeContext:
+    def decode_interframe(payload: Payload, prev_context: InterframeCodecContext) -> InterframeCodecContext:
         """
         Decode a delta payload to reconstruct the next frame's context.
 
@@ -58,7 +58,7 @@ class InterframeInterface(ABC):
 
     @staticmethod
     @abstractmethod
-    def encode_interframe(prev_context: InterframeContext, next_context: InterframeContext) -> Payload:
+    def encode_interframe(prev_context: InterframeCodecContext, next_context: InterframeCodecContext) -> Payload:
         """
         Encode the difference between two consecutive frames.
 
@@ -73,7 +73,7 @@ class InterframeInterface(ABC):
 
     @staticmethod
     @abstractmethod
-    def decode_keyframe(payload: Payload) -> InterframeContext:
+    def decode_keyframe(payload: Payload) -> InterframeCodecContext:
         """
         Decode a keyframe payload to create initial context.
 
@@ -87,7 +87,7 @@ class InterframeInterface(ABC):
 
     @staticmethod
     @abstractmethod
-    def encode_keyframe(context: InterframeContext) -> Payload:
+    def encode_keyframe(context: InterframeCodecContext) -> Payload:
         """
         Encode the first frame as a keyframe.
 
@@ -101,7 +101,7 @@ class InterframeInterface(ABC):
 
     @staticmethod
     @abstractmethod
-    def keyframe_to_context(frame: GaussianModel, init_config: InterframeInitConfig) -> InterframeContext:
+    def keyframe_to_context(frame: GaussianModel, init_config: InterframeCodecConfig) -> InterframeCodecContext:
         """
         Convert a keyframe to a Context.
 
@@ -118,8 +118,8 @@ class InterframeInterface(ABC):
     @abstractmethod
     def interframe_to_context(
         frame: GaussianModel,
-        prev_context: InterframeContext,
-    ) -> InterframeContext:
+        prev_context: InterframeCodecContext,
+    ) -> InterframeCodecContext:
         """
         Convert a frame to a Context using the previous context as reference.
 
@@ -134,7 +134,7 @@ class InterframeInterface(ABC):
 
     @staticmethod
     @abstractmethod
-    def context_to_frame(context: InterframeContext) -> GaussianModel:
+    def context_to_frame(context: InterframeCodecContext) -> GaussianModel:
         """
         Convert a Context back to a frame.
 

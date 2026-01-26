@@ -5,7 +5,7 @@ from gaussian_splatting import GaussianModel
 from ..decoder import AbstractDecoder
 from ..deserializer import AbstractDeserializer
 from ..payload import Payload
-from .interface import InterframeContext, InterframeInterface
+from .interface import InterframeCodecContext, InterframeCodecInterface
 
 
 class InterframeDecoder(AbstractDecoder):
@@ -20,18 +20,18 @@ class InterframeDecoder(AbstractDecoder):
     def __init__(
         self,
         deserializer: AbstractDeserializer,
-        interface: Type[InterframeInterface],
+        interface: Type[InterframeCodecInterface],
     ):
         """
         Initialize the inter-frame decoder.
 
         Args:
             deserializer: The deserializer to use for converting bytes to Payload.
-            interface: The InterframeInterface class that provides decoding methods.
+            interface: The InterframeCodecInterface class that provides decoding methods.
         """
         super().__init__(deserializer)
         self._interface = interface
-        self._prev_context: Optional[InterframeContext] = None
+        self._prev_context: Optional[InterframeCodecContext] = None
 
     def unpack(self, payload: Payload) -> Iterator[GaussianModel]:
         """
