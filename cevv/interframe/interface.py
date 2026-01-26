@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
 
 from gaussian_splatting import GaussianModel
 
@@ -90,17 +89,30 @@ class InterframeInterface(ABC):
 
     @staticmethod
     @abstractmethod
-    def frame_to_context(
-        frame: GaussianModel,
-        prev_context: Optional[InterframeContext] = None,
-    ) -> InterframeContext:
+    def keyframe_to_context(frame: GaussianModel) -> InterframeContext:
         """
-        Convert a frame to a Context.
+        Convert a keyframe to a Context.
 
         Args:
             frame: The GaussianModel frame to convert.
-            prev_context: Optional context from the previous frame,
-                which may be used for reference during conversion.
+
+        Returns:
+            The corresponding Context representation.
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def interframe_to_context(
+        frame: GaussianModel,
+        prev_context: InterframeContext,
+    ) -> InterframeContext:
+        """
+        Convert a frame to a Context using the previous context as reference.
+
+        Args:
+            frame: The GaussianModel frame to convert.
+            prev_context: The context from the previous frame.
 
         Returns:
             The corresponding Context representation.

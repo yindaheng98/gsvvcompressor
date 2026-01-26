@@ -46,18 +46,17 @@ class InterframeEncoder(AbstractEncoder):
         Yields:
             Packed Payload instances.
         """
-        # Convert the frame to context
-        current_context = self._interface.frame_to_context(
-            frame, self._prev_context
-        )
-
         if self._prev_context is None:
-            # First frame: encode as keyframe
+            # First frame: convert and encode as keyframe
+            current_context = self._interface.keyframe_to_context(frame)
             payload = self._interface.encode_keyframe(current_context)
             # Decode back to get reconstructed context (avoid error accumulation)
             reconstructed_context = self._interface.decode_keyframe(payload)
         else:
-            # Subsequent frames: encode as delta from previous
+            # Subsequent frames: convert and encode as delta from previous
+            current_context = self._interface.interframe_to_context(
+                frame, self._prev_context
+            )
             payload = self._interface.encode_interframe(
                 self._prev_context, current_context
             )
