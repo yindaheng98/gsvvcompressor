@@ -7,11 +7,11 @@ from gaussian_splatting import GaussianModel
 from reduced_3dgs.quantization import VectorQuantizer
 
 from ..payload import Payload
-from ..interframe import InterframeCodecConfig, InterframeCodecContext, InterframeCodecInterface
+from ..interframe import InterframeEncoderInitConfig, InterframeCodecContext, InterframeCodecInterface
 
 
 @dataclass
-class VQCodecConfig(InterframeCodecConfig):
+class VQCodecConfig(InterframeEncoderInitConfig):
     """
     Configuration parameters for VQ-based inter-frame codec.
 
@@ -35,10 +35,9 @@ class VQCodecContext(InterframeCodecContext):
     """
     Context data for VQ-based inter-frame encoding/decoding.
 
-    This dataclass holds the quantization state including codebooks,
-    cluster IDs, and xyz coordinates for each frame.
+    This dataclass holds the quantization state including codebooks
+    and cluster IDs for each frame.
     """
-    xyz: torch.Tensor
     ids_dict: Dict[str, torch.Tensor]
     codebook_dict: Dict[str, torch.Tensor]
     max_sh_degree: int
@@ -51,7 +50,6 @@ class VQKeyframePayload(Payload):
 
     Contains the full codebook and cluster IDs for the first frame.
     """
-    xyz: torch.Tensor
     ids_dict: Dict[str, torch.Tensor]
     codebook_dict: Dict[str, torch.Tensor]
     max_sh_degree: int
@@ -62,17 +60,13 @@ class VQInterframePayload(Payload):
     """
     Payload for VQ interframe data.
 
-    Contains only the changed xyz coordinates and cluster IDs for subsequent frames.
+    Contains only the changed cluster IDs for subsequent frames.
     The codebook is inherited from the keyframe context.
 
     Attributes:
-        xyz_mask: Boolean tensor indicating which xyz rows have changed.
-        xyz: Only the changed xyz values (sparse, shape: [num_changed, 3]).
         ids_mask_dict: Dict of boolean tensors indicating which ids changed for each key.
         ids_dict: Dict of only the changed ids values (sparse).
     """
-    xyz_mask: torch.Tensor
-    xyz: torch.Tensor
     ids_mask_dict: Dict[str, torch.Tensor]
     ids_dict: Dict[str, torch.Tensor]
 
@@ -94,16 +88,12 @@ class VQCodecInterface(InterframeCodecInterface):
         Applies the changed values from the payload to the previous context.
 
         Args:
-            payload: The delta payload containing changed xyz and cluster IDs with masks.
+            payload: The delta payload containing changed cluster IDs with masks.
             prev_context: The context of the previous frame (contains codebook).
 
         Returns:
             The reconstructed context for the current frame.
         """
-        # Clone previous xyz and apply changes
-        new_xyz = prev_context.xyz.clone()
-        new_xyz[payload.xyz_mask] = payload.xyz
-
         # Clone previous ids_dict and apply changes
         new_ids_dict = {}
         for key, prev_ids in prev_context.ids_dict.items():
@@ -113,7 +103,6 @@ class VQCodecInterface(InterframeCodecInterface):
             new_ids_dict[key] = new_ids
 
         return VQCodecContext(
-            xyz=new_xyz,
             ids_dict=new_ids_dict,
             codebook_dict=prev_context.codebook_dict,
             max_sh_degree=prev_context.max_sh_degree,
@@ -132,12 +121,8 @@ class VQCodecInterface(InterframeCodecInterface):
             next_context: The context of the next frame.
 
         Returns:
-            A payload containing only changed xyz and cluster IDs with masks.
+            A payload containing only changed cluster IDs with masks.
         """
-        # Find changed xyz rows
-        xyz_mask = (prev_context.xyz != next_context.xyz).any(dim=-1)
-        changed_xyz = next_context.xyz[xyz_mask]
-
         # Find changed ids for each key
         ids_mask_dict = {}
         changed_ids_dict = {}
@@ -153,8 +138,6 @@ class VQCodecInterface(InterframeCodecInterface):
             changed_ids_dict[key] = next_ids[mask]
 
         return VQInterframePayload(
-            xyz_mask=xyz_mask,
-            xyz=changed_xyz,
             ids_mask_dict=ids_mask_dict,
             ids_dict=changed_ids_dict,
         )
@@ -171,7 +154,6 @@ class VQCodecInterface(InterframeCodecInterface):
             The context for the first/key frame.
         """
         return VQCodecContext(
-            xyz=payload.xyz,
             ids_dict=payload.ids_dict,
             codebook_dict=payload.codebook_dict,
             max_sh_degree=payload.max_sh_degree,
@@ -189,7 +171,6 @@ class VQCodecInterface(InterframeCodecInterface):
             A payload containing the full codebook and IDs.
         """
         return VQKeyframePayload(
-            xyz=context.xyz,
             ids_dict=context.ids_dict,
             codebook_dict=context.codebook_dict,
             max_sh_degree=context.max_sh_degree,
@@ -226,7 +207,6 @@ class VQCodecInterface(InterframeCodecInterface):
         ids_dict, codebook_dict = quantizer.quantize(frame, update_codebook=True)
 
         return VQCodecContext(
-            xyz=frame._xyz.detach().clone(),
             ids_dict=ids_dict,
             codebook_dict=codebook_dict,
             max_sh_degree=frame.max_sh_degree,
@@ -260,41 +240,39 @@ class VQCodecInterface(InterframeCodecInterface):
         ids_dict = quantizer.find_nearest_cluster_id(frame, prev_context.codebook_dict)
 
         return VQCodecContext(
-            xyz=frame._xyz.detach().clone(),
             ids_dict=ids_dict,
             codebook_dict=prev_context.codebook_dict,
             max_sh_degree=prev_context.max_sh_degree,
         )
 
     @staticmethod
-    def context_to_frame(context: VQCodecContext) -> GaussianModel:
+    def context_to_frame(context: VQCodecContext, frame: GaussianModel) -> GaussianModel:
         """
         Convert a VQCodecContext back to a GaussianModel frame.
 
         Dequantizes the cluster IDs using the codebook to reconstruct attributes.
+        Does not modify xyz coordinates.
 
         Args:
             context: The VQCodecContext to convert.
+            frame: An empty GaussianModel or one from previous pipeline steps.
+                This frame will be modified in-place with the context data.
 
         Returns:
-            The corresponding GaussianModel frame.
+            The modified GaussianModel with the frame data.
         """
-        # Create a new GaussianModel
-        model = GaussianModel(sh_degree=context.max_sh_degree)
-        model = model.to(context.xyz.device)
-
         # Create a quantizer for dequantization
         quantizer = VectorQuantizer(
             max_sh_degree=context.max_sh_degree,
         )
 
-        # Dequantize to reconstruct the model
-        model = quantizer.dequantize(
-            model,
+        # Dequantize to reconstruct the model (xyz=None means don't modify xyz)
+        frame = quantizer.dequantize(
+            frame,
             context.ids_dict,
             context.codebook_dict,
-            xyz=context.xyz,
+            xyz=None,
             replace=True,
         )
 
-        return model
+        return frame
