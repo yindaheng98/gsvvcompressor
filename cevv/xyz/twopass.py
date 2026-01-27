@@ -1,0 +1,1 @@
+# TODO: two pass xyz interframe encoder/decoder, produce codebook on the whole 3DGS seq in pass one
