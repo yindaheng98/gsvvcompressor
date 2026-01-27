@@ -74,10 +74,12 @@ class FrameWriter:
         first_frame_path: str,
         subsequent_format: str,
         start_index: int,
+        overwrite: bool = False,
     ):
         self._first_frame_path = first_frame_path
         self._subsequent_format = subsequent_format
         self._start_index = start_index
+        self._overwrite = overwrite
 
     def write(self, frames: Iterator[GaussianModel]) -> None:
         """Write GaussianModel frames to the file sequence."""
@@ -92,7 +94,7 @@ class FrameWriter:
                 path = self._subsequent_format.format(index)
                 index += 1
 
-            if os.path.exists(path):
+            if not self._overwrite and os.path.exists(path):
                 raise FileExistsError(f"File already exists: {path}")
 
             parent_dir = os.path.dirname(path)

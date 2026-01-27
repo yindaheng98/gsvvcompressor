@@ -20,6 +20,7 @@ class FrameWriterConfig:
     first_frame_path: str = MISSING
     subsequent_format: str = MISSING
     start_index: int = 2
+    overwrite: bool = False
 
 
 def build_frame_reader(config: FrameReaderConfig) -> FrameReader:
@@ -38,6 +39,7 @@ def build_frame_writer(config: FrameWriterConfig) -> FrameWriter:
         first_frame_path=config.first_frame_path,
         subsequent_format=config.subsequent_format,
         start_index=config.start_index,
+        overwrite=config.overwrite,
     )
 
 
@@ -52,6 +54,7 @@ class BytesReaderConfig:
 class BytesWriterConfig:
     """Configuration for writing bytes data to a file."""
     path: str = MISSING
+    overwrite: bool = False
 
 
 def build_bytes_reader(config: BytesReaderConfig) -> BytesReader:
@@ -66,4 +69,5 @@ def build_bytes_writer(config: BytesWriterConfig) -> BytesWriter:
     """Build a BytesWriter from configuration."""
     return BytesWriter(
         path=config.path,
+        overwrite=config.overwrite,
     )

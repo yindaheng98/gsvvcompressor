@@ -68,14 +68,16 @@ class BytesWriter:
         writer.write(bytes_iterator)
     """
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, overwrite: bool = False):
         """
         Initialize the bytes writer.
 
         Args:
             path: Path to the file to write.
+            overwrite: If True, overwrite existing file. Default is False.
         """
         self._path = path
+        self._overwrite = overwrite
 
     def write(self, data: Iterator[bytes]) -> None:
         """
@@ -85,10 +87,10 @@ class BytesWriter:
             data: An iterator yielding bytes chunks to write.
 
         Raises:
-            FileExistsError: If the target file already exists.
+            FileExistsError: If the target file already exists and overwrite is False.
         """
         # Check if file exists before writing
-        if os.path.exists(self._path):
+        if not self._overwrite and os.path.exists(self._path):
             raise FileExistsError(f"File already exists: {self._path}")
 
         # Create parent directory if needed
