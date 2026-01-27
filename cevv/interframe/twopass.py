@@ -110,3 +110,114 @@ class TwoPassInterframeCodecInterface(InterframeCodecInterface):
             The corresponding Context representation.
         """
         pass
+
+
+class TwoPassInterframeEncoder(AbstractEncoder):
+    """
+    Encoder that uses two-pass inter-frame compression.
+
+    This encoder collects frames during pack() calls (pass one), then
+    performs the actual encoding in flush_pack() (pass two).
+
+    Pass one: Gather information from all frames to build PassOneContext.
+    Pass two: Encode all frames using the gathered information.
+    """
+
+    def __init__(
+        self,
+        serializer: AbstractSerializer,
+        interface: TwoPassInterframeCodecInterface,
+        init_config: InterframeEncoderInitConfig,
+    ):
+        """
+        Initialize the two-pass inter-frame encoder.
+
+        Args:
+            serializer: The serializer to use for converting Payload to bytes.
+            interface: The TwoPassInterframeCodecInterface instance that
+                provides encoding methods.
+            init_config: Configuration parameters for encoder initialization.
+        """
+        super().__init__(serializer)
+        self._interface = interface
+        self._init_config = init_config
+        self._frames: List[GaussianModel] = []
+        self._pass_one_context: Optional[PassOneContext] = None
+
+    def pack(self, frame: GaussianModel) -> Iterator[Payload]:
+        """
+        Perform pass one on the frame and store it for pass two.
+
+        During pass one, this method processes each frame to gather encoding
+        information and stores the frame for later encoding in flush_pack().
+
+        Args:
+            frame: A GaussianModel instance to process.
+
+        Yields:
+            No payloads during pass one (empty iterator).
+        """
+        # Pass one: gather information
+        if self._pass_one_context is None:
+            # First frame: keyframe
+            self._pass_one_context = self._interface.keyframe_to_context_pass_one(
+                frame, self._init_config
+            )
+        else:
+            # Subsequent frames: interframe
+            self._pass_one_context = self._interface.interframe_to_context_pass_one(
+                frame, self._pass_one_context
+            )
+
+        # Store frame for pass two
+        self._frames.append(frame)
+
+        # No payloads during pass one
+        return
+        yield  # Make this a generator
+
+    def flush_pack(self) -> Iterator[Payload]:
+        """
+        Perform pass two: encode all stored frames using pass one information.
+
+        This method encodes all frames that were collected during pack() calls,
+        using the PassOneContext gathered during pass one.
+
+        Yields:
+            Packed Payload instances for all frames.
+        """
+        if not self._frames or self._pass_one_context is None:
+            return
+            yield  # Make this a generator
+
+        prev_context: Optional[InterframeCodecContext] = None
+
+        for frame in self._frames:
+            if prev_context is None:
+                # First frame: convert and encode as keyframe using pass_one_context
+                current_context = self._interface.keyframe_to_context(
+                    frame, self._pass_one_context
+                )
+                payload = self._interface.encode_keyframe(current_context)
+                # Decode back to get reconstructed context (avoid error accumulation)
+                reconstructed_context = self._interface.decode_keyframe(payload)
+            else:
+                # Subsequent frames: convert and encode as delta from previous
+                current_context = self._interface.interframe_to_context(
+                    frame, prev_context
+                )
+                payload = self._interface.encode_interframe(
+                    prev_context, current_context
+                )
+                # Decode back to get reconstructed context (avoid error accumulation)
+                reconstructed_context = self._interface.decode_interframe(
+                    payload, prev_context
+                )
+
+            # Use reconstructed context as previous for next frame
+            prev_context = reconstructed_context
+
+            yield payload
+
+        # Clear stored frames after encoding
+        self._frames.clear()
