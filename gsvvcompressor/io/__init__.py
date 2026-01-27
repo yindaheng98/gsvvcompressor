@@ -1,19 +1,24 @@
 """
-IO module for reading and writing GaussianModel sequences and bytes data.
-
-This module provides classes for:
-- GaussianModelSequenceReader: Read GaussianModel frames from a sequence of files
-- GaussianModelSequenceWriter: Write GaussianModel frames to a sequence of files
-- BytesReader: Read bytes data from a file
-- BytesWriter: Write bytes data to a file
+IO module for reading and writing GaussianModel frames and bytes data.
 """
 
-from .gaussian_model import GaussianModelSequenceReader, GaussianModelSequenceWriter
+from .gaussian_model import (
+    FrameReader,
+    FrameWriter,
+    FrameReaderConfig,
+    FrameWriterConfig,
+    build_frame_reader,
+    build_frame_writer,
+)
 from .bytes import BytesReader, BytesWriter
 
 __all__ = [
-    "GaussianModelSequenceReader",
-    "GaussianModelSequenceWriter",
+    "FrameReader",
+    "FrameWriter",
+    "FrameReaderConfig",
+    "FrameWriterConfig",
+    "build_frame_reader",
+    "build_frame_writer",
     "BytesReader",
     "BytesWriter",
 ]
