@@ -11,7 +11,7 @@ from ..interframe import InterframeEncoderInitConfig, InterframeCodecContext, In
 
 
 @dataclass
-class VQCodecConfig(InterframeEncoderInitConfig):
+class VQInterframeCodecConfig(InterframeEncoderInitConfig):
     """
     Configuration parameters for VQ-based inter-frame codec.
 
@@ -31,7 +31,7 @@ class VQCodecConfig(InterframeEncoderInitConfig):
 
 
 @dataclass
-class VQCodecContext(InterframeCodecContext):
+class VQInterframeCodecContext(InterframeCodecContext):
     """
     Context data for VQ-based inter-frame encoding/decoding.
 
@@ -71,7 +71,7 @@ class VQInterframePayload(Payload):
     ids_dict: Dict[str, torch.Tensor]
 
 
-class VQCodecInterface(InterframeCodecInterface):
+class VQInterframeCodecInterface(InterframeCodecInterface):
     """
     VQ-based inter-frame encoding/decoding interface.
 
@@ -81,7 +81,7 @@ class VQCodecInterface(InterframeCodecInterface):
     """
 
     @staticmethod
-    def decode_interframe(payload: VQInterframePayload, prev_context: VQCodecContext) -> VQCodecContext:
+    def decode_interframe(payload: VQInterframePayload, prev_context: VQInterframeCodecContext) -> VQInterframeCodecContext:
         """
         Decode a delta payload to reconstruct the next frame's context.
 
@@ -102,14 +102,14 @@ class VQCodecInterface(InterframeCodecInterface):
             new_ids[mask] = payload.ids_dict[key]
             new_ids_dict[key] = new_ids
 
-        return VQCodecContext(
+        return VQInterframeCodecContext(
             ids_dict=new_ids_dict,
             codebook_dict=prev_context.codebook_dict,
             max_sh_degree=prev_context.max_sh_degree,
         )
 
     @staticmethod
-    def encode_interframe(prev_context: VQCodecContext, next_context: VQCodecContext) -> VQInterframePayload:
+    def encode_interframe(prev_context: VQInterframeCodecContext, next_context: VQInterframeCodecContext) -> VQInterframePayload:
         """
         Encode the difference between two consecutive frames.
 
@@ -143,7 +143,7 @@ class VQCodecInterface(InterframeCodecInterface):
         )
 
     @staticmethod
-    def decode_keyframe(payload: VQKeyframePayload) -> VQCodecContext:
+    def decode_keyframe(payload: VQKeyframePayload) -> VQInterframeCodecContext:
         """
         Decode a keyframe payload to create initial context.
 
@@ -153,14 +153,14 @@ class VQCodecInterface(InterframeCodecInterface):
         Returns:
             The context for the first/key frame.
         """
-        return VQCodecContext(
+        return VQInterframeCodecContext(
             ids_dict=payload.ids_dict,
             codebook_dict=payload.codebook_dict,
             max_sh_degree=payload.max_sh_degree,
         )
 
     @staticmethod
-    def encode_keyframe(context: VQCodecContext) -> VQKeyframePayload:
+    def encode_keyframe(context: VQInterframeCodecContext) -> VQKeyframePayload:
         """
         Encode the first frame as a keyframe.
 
@@ -177,9 +177,9 @@ class VQCodecInterface(InterframeCodecInterface):
         )
 
     @staticmethod
-    def keyframe_to_context(frame: GaussianModel, init_config: VQCodecConfig) -> VQCodecContext:
+    def keyframe_to_context(frame: GaussianModel, init_config: VQInterframeCodecConfig) -> VQInterframeCodecContext:
         """
-        Convert a keyframe to a VQCodecContext.
+        Convert a keyframe to a VQInterframeCodecContext.
 
         Creates a VectorQuantizer and generates codebooks from the frame.
 
@@ -188,7 +188,7 @@ class VQCodecInterface(InterframeCodecInterface):
             init_config: Configuration parameters for quantization.
 
         Returns:
-            The corresponding VQCodecContext representation.
+            The corresponding VQInterframeCodecContext representation.
         """
         quantizer = VectorQuantizer(
             num_clusters=init_config.num_clusters,
@@ -206,7 +206,7 @@ class VQCodecInterface(InterframeCodecInterface):
         # Generate codebooks and cluster IDs from the keyframe
         ids_dict, codebook_dict = quantizer.quantize(frame, update_codebook=True)
 
-        return VQCodecContext(
+        return VQInterframeCodecContext(
             ids_dict=ids_dict,
             codebook_dict=codebook_dict,
             max_sh_degree=frame.max_sh_degree,
@@ -215,10 +215,10 @@ class VQCodecInterface(InterframeCodecInterface):
     @staticmethod
     def interframe_to_context(
         frame: GaussianModel,
-        prev_context: VQCodecContext,
-    ) -> VQCodecContext:
+        prev_context: VQInterframeCodecContext,
+    ) -> VQInterframeCodecContext:
         """
-        Convert a frame to a VQCodecContext using the previous context's codebook.
+        Convert a frame to a VQInterframeCodecContext using the previous context's codebook.
 
         Uses the codebook from the previous context to find nearest cluster IDs.
 
@@ -227,7 +227,7 @@ class VQCodecInterface(InterframeCodecInterface):
             prev_context: The context from the previous frame.
 
         Returns:
-            The corresponding VQCodecContext representation.
+            The corresponding VQInterframeCodecContext representation.
         """
         # Create a quantizer with the same settings
         quantizer = VectorQuantizer(
@@ -239,22 +239,22 @@ class VQCodecInterface(InterframeCodecInterface):
         # Find nearest cluster IDs using existing codebook
         ids_dict = quantizer.find_nearest_cluster_id(frame, prev_context.codebook_dict)
 
-        return VQCodecContext(
+        return VQInterframeCodecContext(
             ids_dict=ids_dict,
             codebook_dict=prev_context.codebook_dict,
             max_sh_degree=prev_context.max_sh_degree,
         )
 
     @staticmethod
-    def context_to_frame(context: VQCodecContext, frame: GaussianModel) -> GaussianModel:
+    def context_to_frame(context: VQInterframeCodecContext, frame: GaussianModel) -> GaussianModel:
         """
-        Convert a VQCodecContext back to a GaussianModel frame.
+        Convert a VQInterframeCodecContext back to a GaussianModel frame.
 
         Dequantizes the cluster IDs using the codebook to reconstruct attributes.
         Does not modify xyz coordinates.
 
         Args:
-            context: The VQCodecContext to convert.
+            context: The VQInterframeCodecContext to convert.
             frame: An empty GaussianModel or one from previous pipeline steps.
                 This frame will be modified in-place with the context data.
 

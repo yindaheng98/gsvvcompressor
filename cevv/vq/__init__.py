@@ -1,15 +1,15 @@
 from .interface import (
-    VQCodecConfig,
-    VQCodecContext,
+    VQInterframeCodecConfig,
+    VQInterframeCodecContext,
     VQKeyframePayload,
     VQInterframePayload,
-    VQCodecInterface,
+    VQInterframeCodecInterface,
 )
 
 __all__ = [
-    'VQCodecConfig',
-    'VQCodecContext',
+    'VQInterframeCodecConfig',
+    'VQInterframeCodecContext',
     'VQKeyframePayload',
     'VQInterframePayload',
-    'VQCodecInterface',
+    'VQInterframeCodecInterface',
 ]
