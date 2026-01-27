@@ -19,11 +19,11 @@ class VQInterframeCodecConfig(InterframeEncoderInitConfig):
     including the number of clusters for each attribute type.
     """
     num_clusters: int = 256
-    num_clusters_rotation_re: int = None
-    num_clusters_rotation_im: int = None
-    num_clusters_opacity: int = None
-    num_clusters_scaling: int = None
-    num_clusters_features_dc: int = None
+    num_clusters_rotation_re: int = 256
+    num_clusters_rotation_im: int = 256
+    num_clusters_opacity: int = 256
+    num_clusters_scaling: int = 256
+    num_clusters_features_dc: int = 256
     num_clusters_features_rest: list = field(default_factory=list)
     max_sh_degree: int = 3
     tol: float = 1e-6
