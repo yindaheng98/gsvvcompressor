@@ -2,23 +2,38 @@
 Combination modules for composing multiple codec components.
 """
 
-from .vq_xyz_zstd import create_vq_xyz_zstd_encoder, create_vq_xyz_zstd_decoder
+from .registry import (
+    ENCODERS,
+    DECODERS,
+    register_encoder,
+    register_decoder,
+    EncoderEntry,
+    DecoderEntry,
+)
 
-# Registry of encoder factory functions
-# Key: combination name, Value: encoder factory function
-ENCODERS = {
-    "vq_xyz_zstd": create_vq_xyz_zstd_encoder,
-}
+# Import to trigger registration
+from . import vq_xyz_zstd
 
-# Registry of decoder factory functions
-# Key: combination name, Value: decoder factory function
-DECODERS = {
-    "vq_xyz_zstd": create_vq_xyz_zstd_decoder,
-}
+from .vq_xyz_zstd import (
+    VQXYZZstdEncoderConfig,
+    VQXYZZstdDecoderConfig,
+    VQXYZZstdEncoder,
+    VQXYZZstdDecoder,
+    build_vqxyzzstd_encoder,
+    build_vqxyzzstd_decoder,
+)
 
 __all__ = [
-    "create_vq_xyz_zstd_encoder",
-    "create_vq_xyz_zstd_decoder",
     "ENCODERS",
     "DECODERS",
+    "register_encoder",
+    "register_decoder",
+    "EncoderEntry",
+    "DecoderEntry",
+    "VQXYZZstdEncoderConfig",
+    "VQXYZZstdDecoderConfig",
+    "VQXYZZstdEncoder",
+    "VQXYZZstdDecoder",
+    "build_vqxyzzstd_encoder",
+    "build_vqxyzzstd_decoder",
 ]

@@ -55,7 +55,7 @@ def VQXYZZstdDecoder(
 
 
 @dataclass
-class VqXyzZstdEncoderConfig:
+class VQXYZZstdEncoderConfig:
     """Configuration for VQ + XYZ + Zstd encoder."""
     vq: VQInterframeCodecConfig = field(default_factory=VQInterframeCodecConfig)
     xyz: XYZQuantInterframeCodecConfig = field(default_factory=XYZQuantInterframeCodecConfig)
@@ -64,12 +64,12 @@ class VqXyzZstdEncoderConfig:
 
 
 @dataclass
-class VqXyzZstdDecoderConfig:
+class VQXYZZstdDecoderConfig:
     """Configuration for VQ + XYZ + Zstd decoder."""
     payload_device: Optional[str] = None
 
 
-def build_vqxyzzstd_encoder(config: VqXyzZstdEncoderConfig) -> InterframeEncoder:
+def build_vqxyzzstd_encoder(config: VQXYZZstdEncoderConfig) -> InterframeEncoder:
     """Build encoder from configuration."""
     return VQXYZZstdEncoder(
         vq_config=config.vq,
@@ -79,7 +79,7 @@ def build_vqxyzzstd_encoder(config: VqXyzZstdEncoderConfig) -> InterframeEncoder
     )
 
 
-def build_vqxyzzstd_decoder(config: VqXyzZstdDecoderConfig) -> InterframeDecoder:
+def build_vqxyzzstd_decoder(config: VQXYZZstdDecoderConfig) -> InterframeDecoder:
     """Build decoder from configuration."""
     return VQXYZZstdDecoder(
         payload_device=config.payload_device,
@@ -90,13 +90,13 @@ def build_vqxyzzstd_decoder(config: VqXyzZstdDecoderConfig) -> InterframeDecoder
 register_encoder(
     "vqxyzzstd",
     build_vqxyzzstd_encoder,
-    VqXyzZstdEncoderConfig,
+    VQXYZZstdEncoderConfig,
     "VQ + XYZ quantization + Zstd compression",
 )
 
 register_decoder(
     "vqxyzzstd",
     build_vqxyzzstd_decoder,
-    VqXyzZstdDecoderConfig,
+    VQXYZZstdDecoderConfig,
     "VQ + XYZ quantization + Zstd decompression",
 )
