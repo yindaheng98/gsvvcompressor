@@ -25,9 +25,10 @@ Hydra options:
     --info config       Show config search path
 """
 
+import logging
 import sys
 from dataclasses import field, make_dataclass
-from typing import List, Type
+from typing import Iterable, Iterator, List, Type, TypeVar
 
 import hydra
 from hydra.core.config_store import ConfigStore
@@ -45,6 +46,20 @@ from .io import (
     build_bytes_reader,
     build_bytes_writer,
 )
+
+logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Progress Logging Utilities
+# =============================================================================
+
+def iter_with_progress(iterable: Iterator, desc: str) -> Iterator:
+    """Wrap an iterable to log progress for each item."""
+    for i, item in enumerate(iterable):
+        logger.info(f"{desc} {i}")
+        yield item
+    logger.info(f"{desc} finished")
 
 
 # =============================================================================
@@ -90,18 +105,18 @@ def do_encode(cfg: DictConfig, codec_name: str) -> None:
     # Build encoder from codec config
     encoder = encoder_entry.factory(cfg.codec)
 
-    print(f"Encoding with {codec_name}...")
-    print(f"  Input: {cfg.input.first_frame_path}")
-    print(f"  Output: {cfg.output.path}")
+    logger.info(f"Encoding with {codec_name}...")
+    logger.info(f"  Input: {cfg.input.first_frame_path}")
+    logger.info(f"  Output: {cfg.output.path}")
 
     # Read frames and encode
     frame_stream = frame_reader.read()
-    encoded_stream = encoder.encode_stream(frame_stream)
+    encoded_stream = iter_with_progress(encoder.encode_stream(frame_stream), "Encoding frame")
 
     # Write encoded bytes
     bytes_writer.write(encoded_stream)
 
-    print("Encoding complete!")
+    logger.info("Encoding complete!")
 
 
 def do_decode(cfg: DictConfig, codec_name: str) -> None:
@@ -115,18 +130,18 @@ def do_decode(cfg: DictConfig, codec_name: str) -> None:
     # Build decoder from codec config
     decoder = decoder_entry.factory(cfg.codec)
 
-    print(f"Decoding with {codec_name}...")
-    print(f"  Input: {cfg.input.path}")
-    print(f"  Output: {cfg.output.first_frame_path}")
+    logger.info(f"Decoding with {codec_name}...")
+    logger.info(f"  Input: {cfg.input.path}")
+    logger.info(f"  Output: {cfg.output.first_frame_path}")
 
     # Read bytes and decode
     bytes_stream = bytes_reader.read()
-    decoded_stream = decoder.decode_stream(bytes_stream)
+    decoded_stream = iter_with_progress(decoder.decode_stream(bytes_stream), "Decoding frame")
 
     # Write decoded frames
     frame_writer.write(decoded_stream)
 
-    print("Decoding complete!")
+    logger.info("Decoding complete!")
 
 
 def run_encode(codec_name: str, hydra_args: List[str]) -> None:
@@ -171,6 +186,11 @@ def run_decode(codec_name: str, hydra_args: List[str]) -> None:
 
 def main() -> None:
     """Main entry point for the CLI."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
     if len(sys.argv) < 2 or sys.argv[1] in ("--help", "-h", "help"):
         print("Usage: python -m gsvvcompressor <encode|decode> <codec> [options]")
         print(f"  Encoders: {list(ENCODERS.keys())}")

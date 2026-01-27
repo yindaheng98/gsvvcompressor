@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "gsvvcompressor: encode",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "gsvvcompressor",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "encode",
+                "vqxyzzstd",
+                "input.first_frame_path=output/walking/frame1/point_cloud/iteration_10000/point_cloud.ply",
+                "input.subsequent_format='output/walking/refine/masked-propagate-dot-cotracker3/masked-propagate-dot-cotracker3/frame{:d}/point_cloud/iteration_1000/point_cloud.ply'",
+                "output.path=output/walking/refine/masked-propagate-dot-cotracker3.bin",
+                "output.overwrite=true",
+            ]
+        },
+    ]
+}
