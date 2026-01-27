@@ -12,6 +12,7 @@ from .interface import (
     InterframeCodecInterface,
     InterframeEncoderInitConfig,
 )
+from .encoder import InterframeEncoder
 
 
 @dataclass
@@ -112,7 +113,7 @@ class TwoPassInterframeCodecInterface(InterframeCodecInterface):
         pass
 
 
-class TwoPassInterframeEncoder(AbstractEncoder):
+class TwoPassInterframeEncoder(InterframeEncoder):
     """
     Encoder that uses two-pass inter-frame compression.
 
@@ -138,9 +139,8 @@ class TwoPassInterframeEncoder(AbstractEncoder):
                 provides encoding methods.
             init_config: Configuration parameters for encoder initialization.
         """
-        super().__init__(serializer)
+        super().__init__(serializer=serializer, interface=interface, init_config=init_config)
         self._interface = interface
-        self._init_config = init_config
         self._frames: List[GaussianModel] = []
         self._pass_one_context: Optional[PassOneContext] = None
 
