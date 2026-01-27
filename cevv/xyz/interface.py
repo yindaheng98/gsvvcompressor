@@ -6,7 +6,7 @@ coordinates of a GaussianModel using quantization.
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Self
 
 import torch
 
@@ -80,6 +80,25 @@ class XYZQuantKeyframePayload(Payload):
     quantized_xyz: torch.Tensor
     tolerance: int = 0
 
+    def to(self, device) -> Self:
+        """
+        Move the Payload to the specified device.
+
+        Args:
+            device: The target device (e.g., 'cpu', 'cuda', torch.device).
+
+        Returns:
+            A new XYZQuantKeyframePayload instance on the target device.
+        """
+        return XYZQuantKeyframePayload(
+            quant_config=XYZQuantConfig(
+                step_size=self.quant_config.step_size,
+                origin=self.quant_config.origin.to(device),
+            ),
+            quantized_xyz=self.quantized_xyz.to(device),
+            tolerance=self.tolerance,
+        )
+
 
 @dataclass
 class XYZQuantInterframePayload(Payload):
@@ -95,6 +114,21 @@ class XYZQuantInterframePayload(Payload):
     """
     xyz_mask: torch.Tensor
     quantized_xyz: torch.Tensor
+
+    def to(self, device) -> Self:
+        """
+        Move the Payload to the specified device.
+
+        Args:
+            device: The target device (e.g., 'cpu', 'cuda', torch.device).
+
+        Returns:
+            A new XYZQuantInterframePayload instance on the target device.
+        """
+        return XYZQuantInterframePayload(
+            xyz_mask=self.xyz_mask.to(device),
+            quantized_xyz=self.quantized_xyz.to(device),
+        )
 
 
 class XYZQuantInterframeCodecInterface(InterframeCodecInterface):

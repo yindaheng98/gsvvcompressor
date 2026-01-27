@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Self
 
 from gaussian_splatting import GaussianModel
 
@@ -17,6 +17,20 @@ class CombinedPayload(Payload):
     Combined payload containing multiple sub-codec payloads.
     """
     payloads: List[Payload]
+
+    def to(self, device) -> Self:
+        """
+        Move the Payload to the specified device.
+
+        Args:
+            device: The target device (e.g., 'cpu', 'cuda', torch.device).
+
+        Returns:
+            A new CombinedPayload instance with all sub-payloads on the target device.
+        """
+        return CombinedPayload(
+            payloads=[p.to(device) for p in self.payloads],
+        )
 
 
 @dataclass

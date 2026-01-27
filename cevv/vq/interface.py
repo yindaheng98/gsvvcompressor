@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Self
 
 import torch
 
@@ -54,6 +54,22 @@ class VQKeyframePayload(Payload):
     codebook_dict: Dict[str, torch.Tensor]
     max_sh_degree: int
 
+    def to(self, device) -> Self:
+        """
+        Move the Payload to the specified device.
+
+        Args:
+            device: The target device (e.g., 'cpu', 'cuda', torch.device).
+
+        Returns:
+            A new VQKeyframePayload instance on the target device.
+        """
+        return VQKeyframePayload(
+            ids_dict={k: v.to(device) for k, v in self.ids_dict.items()},
+            codebook_dict={k: v.to(device) for k, v in self.codebook_dict.items()},
+            max_sh_degree=self.max_sh_degree,
+        )
+
 
 @dataclass
 class VQInterframePayload(Payload):
@@ -69,6 +85,21 @@ class VQInterframePayload(Payload):
     """
     ids_mask_dict: Dict[str, torch.Tensor]
     ids_dict: Dict[str, torch.Tensor]
+
+    def to(self, device) -> Self:
+        """
+        Move the Payload to the specified device.
+
+        Args:
+            device: The target device (e.g., 'cpu', 'cuda', torch.device).
+
+        Returns:
+            A new VQInterframePayload instance on the target device.
+        """
+        return VQInterframePayload(
+            ids_mask_dict={k: v.to(device) for k, v in self.ids_mask_dict.items()},
+            ids_dict={k: v.to(device) for k, v in self.ids_dict.items()},
+        )
 
 
 class VQInterframeCodecInterface(InterframeCodecInterface):
