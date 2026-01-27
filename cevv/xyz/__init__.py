@@ -5,7 +5,7 @@ This module provides functions for adaptive quantization of 3D point coordinates
 based on local point cloud density.
 """
 
-from .quantization import (
+from .quant import (
     XYZQuantConfig,
     compute_quant_config,
     quantize_xyz,
