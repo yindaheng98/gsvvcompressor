@@ -45,23 +45,46 @@ class TwoPassInterframeCodecInterface(InterframeCodecInterface):
     """
 
     @abstractmethod
-    def pass_one(
+    def keyframe_to_context_pass_one(
         self,
+        frame: GaussianModel,
         init_config: InterframeEncoderInitConfig,
-        frames: List[GaussianModel],
     ) -> PassOneContext:
         """
-        Perform the first pass over all frames to gather encoding information.
+        Process the keyframe during the first pass to initialize PassOneContext.
 
-        This method processes all frames to collect statistics or other
-        information needed for optimized encoding in the second pass.
+        This method is called by the encoder when processing the first frame
+        during the first pass. It initializes the PassOneContext with information
+        from the keyframe.
 
         Args:
+            frame: The GaussianModel keyframe to process.
             init_config: Encoder initialization configuration.
-            frames: List of all GaussianModel frames to be encoded.
 
         Returns:
-            PassOneContext containing information gathered from the first pass.
+            PassOneContext initialized from the keyframe.
+        """
+        pass
+
+    @abstractmethod
+    def interframe_to_context_pass_one(
+        self,
+        frame: GaussianModel,
+        prev_pass_one_context: PassOneContext,
+    ) -> PassOneContext:
+        """
+        Process a frame during the first pass to update PassOneContext.
+
+        This method is called by the encoder when processing subsequent frames
+        during the first pass. It updates the PassOneContext with information
+        gathered from the current frame.
+
+        Args:
+            frame: The GaussianModel frame to process.
+            prev_pass_one_context: The PassOneContext from processing previous frames.
+
+        Returns:
+            Updated PassOneContext incorporating information from this frame.
         """
         pass
 
