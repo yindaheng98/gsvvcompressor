@@ -9,6 +9,10 @@ from .config import (
     FrameWriterConfig,
     build_frame_reader,
     build_frame_writer,
+    BytesReaderConfig,
+    BytesWriterConfig,
+    build_bytes_reader,
+    build_bytes_writer,
 )
 
 __all__ = [
@@ -20,4 +24,8 @@ __all__ = [
     "build_frame_writer",
     "BytesReader",
     "BytesWriter",
+    "BytesReaderConfig",
+    "BytesWriterConfig",
+    "build_bytes_reader",
+    "build_bytes_writer",
 ]
