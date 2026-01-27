@@ -5,18 +5,22 @@ This module provides functions for adaptive quantization of 3D point coordinates
 based on local point cloud density.
 """
 
-from .quant import (
-    XYZQuantConfig,
-    compute_quant_config,
-    quantize_xyz,
-    dequantize_xyz,
-    estimate_quantization_error,
+from .quant import XYZQuantConfig
+from .interface import (
+    XYZQuantInterframeCodecConfig,
+    XYZQuantInterframeCodecContext,
+    XYZQuantKeyframePayload,
+    XYZQuantInterframePayload,
+    XYZQuantInterframeCodecInterface,
 )
 
 __all__ = [
+    # quant.py
     'XYZQuantConfig',
-    'compute_quant_config',
-    'quantize_xyz',
-    'dequantize_xyz',
-    'estimate_quantization_error',
+    # interface.py
+    'XYZQuantInterframeCodecConfig',
+    'XYZQuantInterframeCodecContext',
+    'XYZQuantKeyframePayload',
+    'XYZQuantInterframePayload',
+    'XYZQuantInterframeCodecInterface',
 ]
