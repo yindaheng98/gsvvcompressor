@@ -62,6 +62,17 @@ def iter_with_progress(iterable: Iterator, desc: str) -> Iterator:
     logger.info(f"{desc} finished")
 
 
+def iter_with_size_logging(iterable: Iterator[bytes], desc: str) -> Iterator[bytes]:
+    """Wrap a bytes iterable to log the size of each item."""
+    total_size = 0
+    for i, item in enumerate(iterable):
+        size = len(item)
+        total_size += size
+        logger.info(f"{desc} {i}: {size} bytes (total: {total_size} bytes)")
+        yield item
+    logger.info(f"{desc} finished, total size: {total_size} bytes")
+
+
 # =============================================================================
 # Dynamic Config Generation
 # =============================================================================
@@ -113,8 +124,8 @@ def do_encode(cfg: DictConfig, codec_name: str) -> None:
     frame_stream = frame_reader.read()
     encoded_stream = iter_with_progress(encoder.encode_stream(frame_stream), "Encoding frame")
 
-    # Write encoded bytes
-    bytes_writer.write(encoded_stream)
+    # Write encoded bytes with size logging
+    bytes_writer.write(iter_with_size_logging(encoded_stream, "Writing chunk"))
 
     logger.info("Encoding complete!")
 
