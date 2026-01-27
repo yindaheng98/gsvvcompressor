@@ -21,6 +21,7 @@ class InterframeDecoder(AbstractDecoder):
         self,
         deserializer: AbstractDeserializer,
         interface: InterframeCodecInterface,
+        payload_device=None,
     ):
         """
         Initialize the inter-frame decoder.
@@ -28,8 +29,11 @@ class InterframeDecoder(AbstractDecoder):
         Args:
             deserializer: The deserializer to use for converting bytes to Payload.
             interface: The InterframeCodecInterface instance that provides decoding methods.
+            payload_device: The target device for input Payloads before
+                unpacking (e.g., 'cpu', 'cuda'). If None, no device
+                transfer is performed.
         """
-        super().__init__(deserializer)
+        super().__init__(deserializer, payload_device)
         self._interface = interface
         self._prev_context: Optional[InterframeCodecContext] = None
 

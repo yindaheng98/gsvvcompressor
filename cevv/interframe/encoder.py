@@ -22,6 +22,7 @@ class InterframeEncoder(AbstractEncoder):
         serializer: AbstractSerializer,
         interface: InterframeCodecInterface,
         init_config: InterframeEncoderInitConfig,
+        payload_device=None,
     ):
         """
         Initialize the inter-frame encoder.
@@ -30,8 +31,11 @@ class InterframeEncoder(AbstractEncoder):
             serializer: The serializer to use for converting Payload to bytes.
             interface: The InterframeCodecInterface instance that provides encoding methods.
             init_config: Configuration parameters for keyframe initialization.
+            payload_device: The target device for encoded Payloads before
+                serialization (e.g., 'cpu', 'cuda'). If None, no device
+                transfer is performed.
         """
-        super().__init__(serializer)
+        super().__init__(serializer, payload_device)
         self._interface = interface
         self._init_config = init_config
         self._prev_context: Optional[InterframeCodecContext] = None

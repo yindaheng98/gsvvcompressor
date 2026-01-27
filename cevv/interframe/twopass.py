@@ -129,6 +129,7 @@ class TwoPassInterframeEncoder(InterframeEncoder):
         serializer: AbstractSerializer,
         interface: TwoPassInterframeCodecInterface,
         init_config: InterframeEncoderInitConfig,
+        payload_device=None,
     ):
         """
         Initialize the two-pass inter-frame encoder.
@@ -139,7 +140,7 @@ class TwoPassInterframeEncoder(InterframeEncoder):
                 provides encoding methods.
             init_config: Configuration parameters for encoder initialization.
         """
-        super().__init__(serializer=serializer, interface=interface, init_config=init_config)
+        super().__init__(serializer=serializer, interface=interface, init_config=init_config, payload_device=payload_device)
         self._interface = interface
         self._frames: List[GaussianModel] = []
         self._pass_one_context: Optional[PassOneContext] = None
