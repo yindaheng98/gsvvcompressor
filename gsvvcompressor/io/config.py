@@ -10,7 +10,7 @@ class FrameReaderConfig:
     """Configuration for reading GaussianModel frame sequences."""
     first_frame_path: str = MISSING
     subsequent_format: str = MISSING
-    start_index: int = 1
+    start_index: int = 2
     sh_degree: int = 3
 
 
@@ -19,7 +19,7 @@ class FrameWriterConfig:
     """Configuration for writing GaussianModel frame sequences."""
     first_frame_path: str = MISSING
     subsequent_format: str = MISSING
-    start_index: int = 1
+    start_index: int = 2
 
 
 def build_frame_reader(config: FrameReaderConfig) -> FrameReader:
