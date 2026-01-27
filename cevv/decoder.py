@@ -20,14 +20,18 @@ class AbstractDecoder(ABC):
     deserialization format.
     """
 
-    def __init__(self, deserializer: AbstractDeserializer):
+    def __init__(self, deserializer: AbstractDeserializer, payload_device=None):
         """
         Initialize the decoder.
 
         Args:
             deserializer: The deserializer to use for converting bytes to Payload.
+            payload_device: The target device for input Payloads before
+                unpacking (e.g., 'cpu', 'cuda'). If None, no device
+                transfer is performed.
         """
         self._deserializer = deserializer
+        self._payload_device = payload_device
 
     @abstractmethod
     def unpack(self, payload: Payload) -> Iterator[GaussianModel]:
@@ -76,6 +80,8 @@ class AbstractDecoder(ABC):
             chunk have been decoded.
         """
         for payload in self._deserializer.deserialize_frame(data):
+            if self._payload_device is not None:
+                payload = payload.to(self._payload_device)
             yield from self.unpack(payload)
 
     def flush(self) -> Iterator[GaussianModel]:
@@ -91,6 +97,8 @@ class AbstractDecoder(ABC):
         """
         # Flush deserialization stage and unpack any remaining payloads
         for payload in self._deserializer.flush():
+            if self._payload_device is not None:
+                payload = payload.to(self._payload_device)
             yield from self.unpack(payload)
 
         # Flush unpacking stage

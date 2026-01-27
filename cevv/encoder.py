@@ -19,14 +19,18 @@ class AbstractEncoder(ABC):
     This design separates frame packing logic from serialization format.
     """
 
-    def __init__(self, serializer: AbstractSerializer):
+    def __init__(self, serializer: AbstractSerializer, payload_device=None):
         """
         Initialize the encoder.
 
         Args:
             serializer: The serializer to use for converting Payload to bytes.
+            payload_device: The target device for encoded Payloads before
+                serialization (e.g., 'cpu', 'cuda'). If None, no device
+                transfer is performed.
         """
         self._serializer = serializer
+        self._payload_device = payload_device
 
     @abstractmethod
     def pack(self, frame: GaussianModel) -> Iterator[Payload]:
@@ -75,6 +79,8 @@ class AbstractEncoder(ABC):
             encoded.
         """
         for payload in self.pack(frame):
+            if self._payload_device is not None:
+                payload = payload.to(self._payload_device)
             yield from self._serializer.serialize_frame(payload)
 
     def flush(self) -> Iterator[bytes]:
@@ -90,6 +96,8 @@ class AbstractEncoder(ABC):
         """
         # Flush packing stage and serialize any remaining payloads
         for payload in self.flush_pack():
+            if self._payload_device is not None:
+                payload = payload.to(self._payload_device)
             yield from self._serializer.serialize_frame(payload)
 
         # Flush serialization stage
