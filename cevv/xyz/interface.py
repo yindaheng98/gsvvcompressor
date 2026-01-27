@@ -108,8 +108,8 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
     Only operates on xyz coordinates; other GaussianModel attributes are not modified.
     """
 
-    @staticmethod
     def decode_interframe(
+        self,
         payload: XYZQuantInterframePayload,
         prev_context: XYZQuantInterframeCodecContext,
     ) -> XYZQuantInterframeCodecContext:
@@ -135,8 +135,8 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
             tolerance=prev_context.tolerance,
         )
 
-    @staticmethod
     def encode_interframe(
+        self,
         prev_context: XYZQuantInterframeCodecContext,
         next_context: XYZQuantInterframeCodecContext,
     ) -> XYZQuantInterframePayload:
@@ -167,8 +167,7 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
             quantized_xyz=changed_xyz,
         )
 
-    @staticmethod
-    def decode_keyframe(payload: XYZQuantKeyframePayload) -> XYZQuantInterframeCodecContext:
+    def decode_keyframe(self, payload: XYZQuantKeyframePayload) -> XYZQuantInterframeCodecContext:
         """
         Decode a keyframe payload to create initial context.
 
@@ -184,8 +183,7 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
             tolerance=payload.tolerance,
         )
 
-    @staticmethod
-    def encode_keyframe(context: XYZQuantInterframeCodecContext) -> XYZQuantKeyframePayload:
+    def encode_keyframe(self, context: XYZQuantInterframeCodecContext) -> XYZQuantKeyframePayload:
         """
         Encode the first frame as a keyframe.
 
@@ -201,8 +199,8 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
             tolerance=context.tolerance,
         )
 
-    @staticmethod
     def keyframe_to_context(
+        self,
         frame: GaussianModel,
         init_config: XYZQuantInterframeCodecConfig,
     ) -> XYZQuantInterframeCodecContext:
@@ -242,8 +240,8 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
             tolerance=init_config.tolerance,
         )
 
-    @staticmethod
     def interframe_to_context(
+        self,
         frame: GaussianModel,
         prev_context: XYZQuantInterframeCodecContext,
     ) -> XYZQuantInterframeCodecContext:
@@ -270,8 +268,8 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
             tolerance=prev_context.tolerance,
         )
 
-    @staticmethod
     def context_to_frame(
+        self,
         context: XYZQuantInterframeCodecContext,
         frame: GaussianModel,
     ) -> GaussianModel:

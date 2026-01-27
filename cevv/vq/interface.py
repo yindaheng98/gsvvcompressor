@@ -80,8 +80,7 @@ class VQInterframeCodecInterface(InterframeCodecInterface):
     to find nearest cluster IDs.
     """
 
-    @staticmethod
-    def decode_interframe(payload: VQInterframePayload, prev_context: VQInterframeCodecContext) -> VQInterframeCodecContext:
+    def decode_interframe(self, payload: VQInterframePayload, prev_context: VQInterframeCodecContext) -> VQInterframeCodecContext:
         """
         Decode a delta payload to reconstruct the next frame's context.
 
@@ -108,8 +107,7 @@ class VQInterframeCodecInterface(InterframeCodecInterface):
             max_sh_degree=prev_context.max_sh_degree,
         )
 
-    @staticmethod
-    def encode_interframe(prev_context: VQInterframeCodecContext, next_context: VQInterframeCodecContext) -> VQInterframePayload:
+    def encode_interframe(self, prev_context: VQInterframeCodecContext, next_context: VQInterframeCodecContext) -> VQInterframePayload:
         """
         Encode the difference between two consecutive frames.
 
@@ -142,8 +140,7 @@ class VQInterframeCodecInterface(InterframeCodecInterface):
             ids_dict=changed_ids_dict,
         )
 
-    @staticmethod
-    def decode_keyframe(payload: VQKeyframePayload) -> VQInterframeCodecContext:
+    def decode_keyframe(self, payload: VQKeyframePayload) -> VQInterframeCodecContext:
         """
         Decode a keyframe payload to create initial context.
 
@@ -159,8 +156,7 @@ class VQInterframeCodecInterface(InterframeCodecInterface):
             max_sh_degree=payload.max_sh_degree,
         )
 
-    @staticmethod
-    def encode_keyframe(context: VQInterframeCodecContext) -> VQKeyframePayload:
+    def encode_keyframe(self, context: VQInterframeCodecContext) -> VQKeyframePayload:
         """
         Encode the first frame as a keyframe.
 
@@ -176,8 +172,7 @@ class VQInterframeCodecInterface(InterframeCodecInterface):
             max_sh_degree=context.max_sh_degree,
         )
 
-    @staticmethod
-    def keyframe_to_context(frame: GaussianModel, init_config: VQInterframeCodecConfig) -> VQInterframeCodecContext:
+    def keyframe_to_context(self, frame: GaussianModel, init_config: VQInterframeCodecConfig) -> VQInterframeCodecContext:
         """
         Convert a keyframe to a VQInterframeCodecContext.
 
@@ -212,8 +207,8 @@ class VQInterframeCodecInterface(InterframeCodecInterface):
             max_sh_degree=frame.max_sh_degree,
         )
 
-    @staticmethod
     def interframe_to_context(
+        self,
         frame: GaussianModel,
         prev_context: VQInterframeCodecContext,
     ) -> VQInterframeCodecContext:
@@ -245,8 +240,7 @@ class VQInterframeCodecInterface(InterframeCodecInterface):
             max_sh_degree=prev_context.max_sh_degree,
         )
 
-    @staticmethod
-    def context_to_frame(context: VQInterframeCodecContext, frame: GaussianModel) -> GaussianModel:
+    def context_to_frame(self, context: VQInterframeCodecContext, frame: GaussianModel) -> GaussianModel:
         """
         Convert a VQInterframeCodecContext back to a GaussianModel frame.
 
