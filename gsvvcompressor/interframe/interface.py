@@ -107,6 +107,54 @@ class InterframeCodecInterface(ABC):
         pass
 
     @abstractmethod
+    def decode_keyframe_for_encode(self, payload: Payload, context: InterframeCodecContext) -> InterframeCodecContext:
+        """
+        Decode a keyframe payload during encoding to avoid error accumulation.
+
+        This method is used by the encoder after encoding a keyframe. It decodes
+        the payload back to get the reconstructed context that the decoder would
+        produce, which should be used as the reference for encoding subsequent
+        frames instead of the original context.
+
+        Unlike `decode_keyframe()`, this method may reuse data from the original
+        encoding context (passed as `context`) for efficiency, since certain
+        information may not need to be re-decoded during encoding.
+
+        Args:
+            payload: The keyframe payload that was just encoded.
+            context: The original context used for encoding this keyframe.
+
+        Returns:
+            The reconstructed context as the decoder would produce it.
+        """
+        pass
+
+    def decode_interframe_for_encode(
+        self, payload: Payload, context: InterframeCodecContext
+    ) -> InterframeCodecContext:
+        """
+        Decode an interframe payload during encoding to avoid error accumulation.
+
+        This method is used by the encoder after encoding an interframe. It decodes
+        the payload back to get the reconstructed context that the decoder would
+        produce, which should be used as the reference for encoding subsequent
+        frames instead of the original context.
+
+        Unlike `decode_interframe()`, this method may reuse data from the original
+        encoding context (passed as `context`) for
+        efficiency, since certain information may not need to be re-decoded
+        during encoding.
+
+        Args:
+            payload: The interframe payload that was just encoded.
+            context: The original context used for encoding this frame.
+
+        Returns:
+            The reconstructed context as the decoder would produce it.
+        """
+        return self.decode_interframe(payload, context)
+
+    @abstractmethod
     def encode_keyframe(self, context: InterframeCodecContext) -> Payload:
         """
         Encode the first frame as a keyframe.

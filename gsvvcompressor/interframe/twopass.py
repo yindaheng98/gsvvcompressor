@@ -201,7 +201,9 @@ class TwoPassInterframeEncoder(InterframeEncoder):
                 )
                 payload = self._interface.encode_keyframe(current_context)
                 # Decode back to get reconstructed context (avoid error accumulation)
-                reconstructed_context = self._interface.decode_keyframe(payload)
+                reconstructed_context = self._interface.decode_keyframe_for_encode(
+                    payload, current_context
+                )
             else:
                 # Subsequent frames: convert and encode as delta from previous
                 current_context = self._interface.interframe_to_context(
@@ -211,7 +213,7 @@ class TwoPassInterframeEncoder(InterframeEncoder):
                     prev_context, current_context
                 )
                 # Decode back to get reconstructed context (avoid error accumulation)
-                reconstructed_context = self._interface.decode_interframe(
+                reconstructed_context = self._interface.decode_interframe_for_encode(
                     payload, prev_context
                 )
 
