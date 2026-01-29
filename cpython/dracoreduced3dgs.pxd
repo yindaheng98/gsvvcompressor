@@ -3,7 +3,7 @@ from libcpp.vector cimport vector
 from libc.stdint cimport int32_t
 
 
-cdef extern from "draco3dgs.h" namespace "Draco3DGS":
+cdef extern from "dracoreduced3dgs.h" namespace "DracoReduced3DGS":
 
     cdef enum decoding_status:
         successful, not_draco_encoded, failed_during_decoding

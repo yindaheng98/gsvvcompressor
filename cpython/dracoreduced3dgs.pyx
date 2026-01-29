@@ -2,7 +2,7 @@
 import numpy as np
 from libcpp.vector cimport vector
 from libc.stdint cimport int32_t
-cimport draco3dgs
+cimport dracoreduced3dgs
 cimport numpy as cnp
 cnp.import_array()
 
@@ -16,15 +16,15 @@ class DecodingFailedException(Exception):
 
 
 class PointCloud:
-    """Decoded 3DGS point cloud data."""
+    """Decoded reduced 3DGS point cloud data."""
 
     def __init__(self, positions, scales, rotations, opacities, features_dc, features_rest):
-        self.positions = positions        # Nx3, int32
-        self.scales = scales              # Nx3, int32
-        self.rotations = rotations        # Nx4, int32
-        self.opacities = opacities        # Nx1, int32
-        self.features_dc = features_dc    # Nx3, int32
-        self.features_rest = features_rest  # Nx45, int32
+        self.positions = positions          # Nx3, int32
+        self.scales = scales                # Nx1, int32
+        self.rotations = rotations          # Nx2, int32
+        self.opacities = opacities          # Nx1, int32
+        self.features_dc = features_dc      # Nx1, int32
+        self.features_rest = features_rest  # Nx9, int32
 
     @property
     def num_points(self):
@@ -47,15 +47,15 @@ def encode(
     int qfeaturerest=0
 ) -> bytes:
     """
-    Encode 3DGS point cloud to draco buffer.
+    Encode reduced 3DGS point cloud to draco buffer.
 
     Args:
         positions: Nx3 int32 array
-        scales: Nx3 int32 array
-        rotations: Nx4 int32 array
+        scales: Nx1 int32 array
+        rotations: Nx2 int32 array
         opacities: Nx1 int32 array
-        features_dc: Nx3 int32 array
-        features_rest: Nx45 int32 array
+        features_dc: Nx1 int32 array
+        features_rest: Nx9 int32 array
         compression_level: 0-10, higher = better compression
         qp, qscale, qrotation, qopacity, qfeaturedc, qfeaturerest: quantization bits (0 to disable)
 
@@ -69,40 +69,40 @@ def encode(
     cdef vector[int32_t] fdc_vec = np.asarray(features_dc, dtype=np.int32).ravel()
     cdef vector[int32_t] frest_vec = np.asarray(features_rest, dtype=np.int32).ravel()
 
-    encoded = draco3dgs.encode_point_cloud(
+    encoded = dracoreduced3dgs.encode_point_cloud(
         pos_vec, scale_vec, rot_vec, opacity_vec, fdc_vec, frest_vec,
         compression_level, qp, qscale, qrotation, qopacity, qfeaturedc, qfeaturerest
     )
 
-    if encoded.encode_status == draco3dgs.successful_encoding:
+    if encoded.encode_status == dracoreduced3dgs.successful_encoding:
         return bytes(encoded.buffer)
     raise EncodingFailedException("Failed to encode point cloud")
 
 
 def decode(bytes buffer) -> PointCloud:
     """
-    Decode draco buffer to 3DGS point cloud.
+    Decode draco buffer to reduced 3DGS point cloud.
 
     Args:
         buffer: Encoded draco bytes
 
     Returns:
-        PointCloud with positions(Nx3 int32), scales(Nx3 int32), rotations(Nx4 int32), 
-        opacities(Nx1 int32), features_dc(Nx3 int32), features_rest(Nx45 int32)
+        PointCloud with positions(Nx3 int32), scales(Nx1 int32), rotations(Nx2 int32),
+        opacities(Nx1 int32), features_dc(Nx1 int32), features_rest(Nx9 int32)
     """
-    obj = draco3dgs.decode_point_cloud(buffer, len(buffer))
+    obj = dracoreduced3dgs.decode_point_cloud(buffer, len(buffer))
 
-    if obj.decode_status == draco3dgs.not_draco_encoded:
+    if obj.decode_status == dracoreduced3dgs.not_draco_encoded:
         raise DecodingFailedException("Input is not draco encoded")
-    elif obj.decode_status == draco3dgs.failed_during_decoding:
+    elif obj.decode_status == dracoreduced3dgs.failed_during_decoding:
         raise DecodingFailedException("Failed to decode buffer")
 
     n = obj.num_points
     return PointCloud(
         np.asarray(obj.positions).reshape(n, 3),
-        np.asarray(obj.scales).reshape(n, 3),
-        np.asarray(obj.rotations).reshape(n, 4),
+        np.asarray(obj.scales).reshape(n, 1),
+        np.asarray(obj.rotations).reshape(n, 2),
         np.asarray(obj.opacities).reshape(n, 1),
-        np.asarray(obj.features_dc).reshape(n, 3),
-        np.asarray(obj.features_rest).reshape(n, 45),
+        np.asarray(obj.features_dc).reshape(n, 1),
+        np.asarray(obj.features_rest).reshape(n, 9),
     )

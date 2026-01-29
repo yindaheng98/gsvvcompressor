@@ -1,5 +1,5 @@
-#ifndef __DRACO3DGS_H__
-#define __DRACO3DGS_H__
+#ifndef __DRACOREDUCED3DGS_H__
+#define __DRACOREDUCED3DGS_H__
 
 #include <vector>
 #include <cstddef>
@@ -9,7 +9,7 @@
 #include "draco/compression/encode.h"
 #include "draco/point_cloud/point_cloud.h"
 
-namespace Draco3DGS
+namespace DracoReduced3DGS
 {
 
     enum decoding_status
@@ -24,22 +24,22 @@ namespace Draco3DGS
         failed_during_encoding
     };
 
-    // 3DGS attribute dimensions (fixed)
+    // Reduced 3DGS attribute dimensions (fixed)
     constexpr int DIM_POSITION = 3;
-    constexpr int DIM_SCALE = 3;
-    constexpr int DIM_ROTATION = 4;
+    constexpr int DIM_SCALE = 1;
+    constexpr int DIM_ROTATION = 2;
     constexpr int DIM_OPACITY = 1;
-    constexpr int DIM_FEATURE_DC = 3;
-    constexpr int DIM_FEATURE_REST = 45; // SH degree 3: 15 coeffs * 3 channels
+    constexpr int DIM_FEATURE_DC = 1;
+    constexpr int DIM_FEATURE_REST = 9;
 
     struct PointCloudObject
     {
-        std::vector<int32_t> positions;     // Nx3
-        std::vector<int32_t> scales;        // Nx3
-        std::vector<int32_t> rotations;     // Nx4
-        std::vector<int32_t> opacities;     // Nx1
-        std::vector<int32_t> features_dc;   // Nx3
-        std::vector<int32_t> features_rest; // Nx45
+        std::vector<int32_t> positions;
+        std::vector<int32_t> scales;
+        std::vector<int32_t> rotations;
+        std::vector<int32_t> opacities;
+        std::vector<int32_t> features_dc;
+        std::vector<int32_t> features_rest;
         int num_points;
         decoding_status decode_status;
     };
@@ -189,6 +189,6 @@ namespace Draco3DGS
         return result;
     }
 
-} // namespace Draco3DGS
+} // namespace DracoReduced3DGS
 
 #endif
