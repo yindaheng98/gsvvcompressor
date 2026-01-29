@@ -13,7 +13,7 @@ from .registry import (
 
 # Import to trigger registration
 from . import vq_xyz_zstd
-from . import vq1mask_xyz_zstd
+from . import vq_xyz_1mask_zstd
 
 from .vq_xyz_zstd import (
     VQXYZZstdEncoderConfig,
@@ -23,7 +23,7 @@ from .vq_xyz_zstd import (
     build_vqxyzzstd_encoder,
     build_vqxyzzstd_decoder,
 )
-from .vq1mask_xyz_zstd import (
+from .vq_xyz_1mask_zstd import (
     VQXYZ1MaskZstdEncoder,
     VQXYZ1MaskZstdDecoder,
     build_vqxyz1maskzstd_encoder,
