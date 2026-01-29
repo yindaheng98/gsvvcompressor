@@ -15,7 +15,7 @@ from ..interframe.decoder import InterframeDecoder
 from ..vq.interface import VQInterframeCodecConfig
 from ..xyz.interface import XYZQuantInterframeCodecConfig
 from .registry import register_encoder, register_decoder
-from .vq_xyz import VQXYZQuantMergeMaskInterframeCodecInterface
+from .vq_xyz_1mask import VQXYZQuantMergeMaskInterframeCodecInterface
 
 
 def VQXYZ1MaskZstdEncoder(
