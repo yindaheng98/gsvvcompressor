@@ -23,20 +23,101 @@ from ..interframe.encoder import InterframeEncoder
 from ..interframe.decoder import InterframeDecoder
 from ..payload import Payload
 from ..vq.interface import (
-    VQInterframeCodecInterface,
     VQInterframeCodecConfig,
     VQKeyframePayload,
-    VQInterframePayload,
 )
+from ..vq.singlemask import VQMergeMaskInterframePayload
 from ..xyz.interface import (
-    XYZQuantInterframeCodecInterface,
     XYZQuantInterframeCodecConfig,
     XYZQuantKeyframePayload,
     XYZQuantInterframePayload,
 )
 from ..xyz.quant import XYZQuantConfig
 from .registry import register_encoder, register_decoder
+from .vq_xyz_1mask import VQXYZQuantMergeMaskInterframeCodecInterface
 
+
+# =============================================================================
+# Helper functions for converting between VQ ids_dict and Draco numpy arrays
+# =============================================================================
+
+def vq_ids_dict_to_draco_arrays(
+    ids_dict: Dict[str, torch.Tensor],
+    max_sh_degree: int,
+) -> tuple:
+    """
+    Convert VQ ids_dict to Draco format numpy arrays.
+
+    Args:
+        ids_dict: Dictionary of VQ indices.
+        max_sh_degree: Maximum SH degree (for features_rest).
+
+    Returns:
+        Tuple of (scales, rotations, opacities, features_dc, features_rest) numpy arrays.
+    """
+    assert max_sh_degree == 3, "Only max_sh_degree=3 is supported."
+
+    scales = ids_dict["scaling"].cpu().numpy().reshape(-1, 1).astype(np.int32)
+    rotations = np.column_stack([
+        ids_dict["rotation_re"].cpu().numpy(),
+        ids_dict["rotation_im"].cpu().numpy()
+    ]).astype(np.int32)
+    opacities = ids_dict["opacity"].cpu().numpy().reshape(-1, 1).astype(np.int32)
+    features_dc = ids_dict["features_dc"].cpu().numpy().reshape(-1, 1).astype(np.int32)
+    features_rest_list = [
+        ids_dict[f"features_rest_{sh_degree}"].cpu().numpy()
+        for sh_degree in range(max_sh_degree)
+    ]
+    features_rest = np.column_stack(features_rest_list).astype(np.int32)
+
+    return scales, rotations, opacities, features_dc, features_rest
+
+
+def draco_arrays_to_vq_ids_dict(
+    scales: np.ndarray,
+    rotations: np.ndarray,
+    opacities: np.ndarray,
+    features_dc: np.ndarray,
+    features_rest: np.ndarray,
+    max_sh_degree: int,
+) -> Dict[str, torch.Tensor]:
+    """
+    Convert Draco format numpy arrays back to VQ ids_dict.
+
+    Args:
+        scales: Scale indices, shape (N, 1).
+        rotations: Rotation indices, shape (N, 2).
+        opacities: Opacity indices, shape (N, 1).
+        features_dc: DC feature indices, shape (N, 1).
+        features_rest: Rest feature indices, shape (N, max_sh_degree*3).
+        max_sh_degree: Maximum SH degree.
+
+    Returns:
+        Dictionary of VQ indices as torch tensors.
+    """
+    assert max_sh_degree == 3, "Only max_sh_degree=3 is supported."
+
+    ids_dict = {
+        'scaling': torch.from_numpy(scales.flatten()),
+        'rotation_re': torch.from_numpy(rotations[:, 0].copy()),
+        'rotation_im': torch.from_numpy(rotations[:, 1].copy()),
+        'opacity': torch.from_numpy(opacities.flatten()),
+        'features_dc': torch.from_numpy(features_dc.flatten()).unsqueeze(-1),
+    }
+
+    for sh_degree in range(max_sh_degree):
+        start_idx = sh_degree * 3
+        end_idx = start_idx + 3
+        ids_dict[f'features_rest_{sh_degree}'] = torch.from_numpy(
+            features_rest[:, start_idx:end_idx].copy()
+        )
+
+    return ids_dict
+
+
+# =============================================================================
+# Extra payload classes for Draco format
+# =============================================================================
 
 @dataclass
 class VQXYZDracoKeyframeExtra(Payload):
@@ -47,12 +128,10 @@ class VQXYZDracoKeyframeExtra(Payload):
         quant_config: XYZ quantization configuration.
         codebook_dict: VQ codebooks.
         max_sh_degree: Maximum SH degree.
-        tolerance: Tolerance for inter-frame change detection.
     """
     quant_config: XYZQuantConfig
     codebook_dict: Dict[str, torch.Tensor]
     max_sh_degree: int
-    tolerance: int
 
     def to(self, device) -> Self:
         return VQXYZDracoKeyframeExtra(
@@ -62,7 +141,22 @@ class VQXYZDracoKeyframeExtra(Payload):
             ),
             codebook_dict={k: v.to(device) for k, v in self.codebook_dict.items()},
             max_sh_degree=self.max_sh_degree,
-            tolerance=self.tolerance,
+        )
+
+
+@dataclass
+class VQXYZDracoInterframeExtra(Payload):
+    """
+    Extra data for VQ+XYZ interframe that cannot be stored in Draco format.
+
+    Attributes:
+        ids_mask: Boolean tensor indicating which positions changed.
+    """
+    ids_mask: torch.Tensor
+
+    def to(self, device) -> Self:
+        return VQXYZDracoInterframeExtra(
+            ids_mask=self.ids_mask.to(device),
         )
 
 
@@ -76,8 +170,9 @@ class VQXYZDracoInterframeCodecTranscodingInterface(DracoInterframeCodecTranscod
         - Extra: quant_config, codebook_dict, max_sh_degree, tolerance
 
     For interframes:
-        - The sparse change data cannot be efficiently represented in Draco format
-        - Store the entire CombinedPayload in extra with minimal Draco fields
+        - Positions: sparse quantized XYZ (only changed positions)
+        - Scales, rotations, opacities, features_dc, features_rest: sparse VQ indices
+        - Extra: ids_mask (boolean tensor indicating changed positions)
     """
 
     def keyframe_payload_to_draco(self, payload: CombinedPayload) -> DracoPayload:
@@ -93,30 +188,19 @@ class VQXYZDracoInterframeCodecTranscodingInterface(DracoInterframeCodecTranscod
         xyz_payload: XYZQuantKeyframePayload = payload.payloads[0]
         vq_payload: VQKeyframePayload = payload.payloads[1]
 
-        assert vq_payload.max_sh_degree == 3, "Only max_sh_degree=3 is supported."
+        # Convert quantized XYZ to numpy
+        positions = xyz_payload.quantized_xyz.cpu().numpy().astype(np.int32)
 
-        ids_dict = vq_payload.ids_dict
-        max_sh_degree = vq_payload.max_sh_degree
-
-        # Extract model attributes (reduced 3DGS format) directly from model and ids_dict
-        positions = xyz_payload.quantized_xyz.cpu().numpy().astype(np.int32)  # (N, 3)
-        scales = ids_dict["scaling"].cpu().numpy().reshape(-1, 1).astype(np.int32)  # (N, 1)
-        rotations = np.column_stack([
-            ids_dict["rotation_re"].cpu().numpy(),
-            ids_dict["rotation_im"].cpu().numpy()
-        ]).astype(np.int32)  # (N, 2)
-        opacities = ids_dict["opacity"].cpu().numpy().reshape(-1, 1).astype(np.int32)  # (N, 1)
-        features_dc = ids_dict["features_dc"].cpu().numpy().reshape(-1, 1).astype(np.int32)  # (N, 1)
-        # features_rest: combine all sh_degrees into (N, 9)
-        features_rest_list = [ids_dict[f"features_rest_{sh_degree}"].cpu().numpy() for sh_degree in range(max_sh_degree)]
-        features_rest = np.column_stack(features_rest_list).astype(np.int32)  # (N, 9)
+        # Convert VQ ids_dict to Draco arrays using helper function
+        scales, rotations, opacities, features_dc, features_rest = vq_ids_dict_to_draco_arrays(
+            vq_payload.ids_dict, vq_payload.max_sh_degree
+        )
 
         # Store extra data
         extra = VQXYZDracoKeyframeExtra(
             quant_config=xyz_payload.quant_config,
             codebook_dict=vq_payload.codebook_dict,
-            max_sh_degree=max_sh_degree,
-            tolerance=xyz_payload.tolerance,
+            max_sh_degree=vq_payload.max_sh_degree,
         )
 
         return DracoPayload(
@@ -141,36 +225,23 @@ class VQXYZDracoInterframeCodecTranscodingInterface(DracoInterframeCodecTranscod
         """
         extra: VQXYZDracoKeyframeExtra = draco_payload.extra
 
-        assert extra.max_sh_degree == 3, "Only max_sh_degree=3 is supported."
-
-        max_sh_degree = extra.max_sh_degree
-
         # Reconstruct quantized XYZ
-        quantized_xyz = torch.from_numpy(draco_payload.positions)
+        quantized_xyz = torch.from_numpy(draco_payload.positions.copy())
 
-        # Reconstruct VQ ids_dict
-        ids_dict = {
-            'scaling': torch.from_numpy(draco_payload.scales.flatten()),
-            'rotation_re': torch.from_numpy(draco_payload.rotations[:, 0]),
-            'rotation_im': torch.from_numpy(draco_payload.rotations[:, 1]),
-            'opacity': torch.from_numpy(draco_payload.opacities.flatten()),
-            'features_dc': torch.from_numpy(draco_payload.features_dc.flatten()).unsqueeze(-1),
-        }
-
-        # Reconstruct features_rest
-        features_rest = draco_payload.features_rest  # (N, 9)
-        for sh_degree in range(max_sh_degree):
-            start_idx = sh_degree * 3
-            end_idx = start_idx + 3
-            ids_dict[f'features_rest_{sh_degree}'] = torch.from_numpy(
-                features_rest[:, start_idx:end_idx]
-            )
+        # Reconstruct VQ ids_dict using helper function
+        ids_dict = draco_arrays_to_vq_ids_dict(
+            draco_payload.scales,
+            draco_payload.rotations,
+            draco_payload.opacities,
+            draco_payload.features_dc,
+            draco_payload.features_rest,
+            extra.max_sh_degree,
+        )
 
         # Create XYZ keyframe payload
         xyz_payload = XYZQuantKeyframePayload(
             quant_config=extra.quant_config,
             quantized_xyz=quantized_xyz,
-            tolerance=extra.tolerance,
         )
 
         # Create VQ keyframe payload
@@ -183,10 +254,83 @@ class VQXYZDracoInterframeCodecTranscodingInterface(DracoInterframeCodecTranscod
         return CombinedPayload(payloads=[xyz_payload, vq_payload])
 
     def interframe_payload_to_draco(self, payload: CombinedPayload) -> DracoPayload:
-        pass  # TODO
+        """
+        Convert a VQ+XYZ interframe CombinedPayload to DracoPayload.
+
+        Args:
+            payload: CombinedPayload containing [XYZQuantInterframePayload, VQMergeMaskInterframePayload]
+
+        Returns:
+            DracoPayload with sparse changed data and mask in extra.
+        """
+        xyz_payload: XYZQuantInterframePayload = payload.payloads[0]
+        vq_payload: VQMergeMaskInterframePayload = payload.payloads[1]
+        assert torch.equal(
+            xyz_payload.xyz_mask, vq_payload.ids_mask
+        ), "Masks in XYZ and VQ payloads must be the same."
+
+        # Convert sparse quantized XYZ to numpy
+        positions = xyz_payload.quantized_xyz.cpu().numpy().astype(np.int32)
+
+        # Convert sparse VQ ids_dict to Draco arrays using helper function
+        # Note: max_sh_degree=3 is assumed (asserted in helper function)
+        scales, rotations, opacities, features_dc, features_rest = vq_ids_dict_to_draco_arrays(
+            vq_payload.ids_dict, max_sh_degree=3
+        )
+
+        # Store mask in extra (both payloads should have the same merged mask)
+        extra = VQXYZDracoInterframeExtra(
+            ids_mask=vq_payload.ids_mask,
+        )
+
+        return DracoPayload(
+            positions=positions,
+            scales=scales,
+            rotations=rotations,
+            opacities=opacities,
+            features_dc=features_dc,
+            features_rest=features_rest,
+            extra=extra,
+        )
 
     def draco_to_interframe_payload(self, draco_payload: DracoPayload) -> CombinedPayload:
-        pass  # TODO
+        """
+        Convert a DracoPayload back to VQ+XYZ interframe CombinedPayload.
+
+        Args:
+            draco_payload: DracoPayload with sparse changed data and mask in extra.
+
+        Returns:
+            CombinedPayload containing [XYZQuantInterframePayload, VQMergeMaskInterframePayload]
+        """
+        extra: VQXYZDracoInterframeExtra = draco_payload.extra
+
+        # Reconstruct sparse quantized XYZ
+        quantized_xyz = torch.from_numpy(draco_payload.positions.copy())
+
+        # Reconstruct sparse VQ ids_dict using helper function
+        ids_dict = draco_arrays_to_vq_ids_dict(
+            draco_payload.scales,
+            draco_payload.rotations,
+            draco_payload.opacities,
+            draco_payload.features_dc,
+            draco_payload.features_rest,
+            max_sh_degree=3,
+        )
+
+        # Create XYZ interframe payload with merged mask
+        xyz_payload = XYZQuantInterframePayload(
+            xyz_mask=extra.ids_mask,
+            quantized_xyz=quantized_xyz,
+        )
+
+        # Create VQ interframe payload with merged mask
+        vq_payload = VQMergeMaskInterframePayload(
+            ids_mask=extra.ids_mask,
+            ids_dict=ids_dict,
+        )
+
+        return CombinedPayload(payloads=[xyz_payload, vq_payload])
 
 
 def VQXYZDracoEncoder(
@@ -203,9 +347,9 @@ def VQXYZDracoEncoder(
     payload_device: Optional[str] = None,
 ) -> InterframeEncoder:
     """Create an encoder combining VQ + XYZ quantization + Draco compression."""
-    vq_interface = VQInterframeCodecInterface()
-    xyz_interface = XYZQuantInterframeCodecInterface()
-    combined_interface = CombinedInterframeCodecInterface([xyz_interface, vq_interface])
+
+    # Use merged mask interface for better compression efficiency
+    combined_interface = VQXYZQuantMergeMaskInterframeCodecInterface()
 
     # Create transcoding interface
     transcoder = VQXYZDracoInterframeCodecTranscodingInterface()
@@ -218,7 +362,7 @@ def VQXYZDracoEncoder(
     )
 
     serializer = DracoSerializer(
-        level=zstd_level,
+        zstd_level=zstd_level,
         draco_level=draco_level,
         qp=qp,
         qscale=qscale,
@@ -240,9 +384,9 @@ def VQXYZDracoDecoder(
     payload_device: Optional[str] = None,
 ) -> InterframeDecoder:
     """Create a decoder for VQ + XYZ quantization + Draco compressed data."""
-    vq_interface = VQInterframeCodecInterface()
-    xyz_interface = XYZQuantInterframeCodecInterface()
-    combined_interface = CombinedInterframeCodecInterface([xyz_interface, vq_interface])
+
+    # Use merged mask interface for better compression efficiency
+    combined_interface = VQXYZQuantMergeMaskInterframeCodecInterface()
 
     # Create transcoding interface
     transcoder = VQXYZDracoInterframeCodecTranscodingInterface()
@@ -266,12 +410,12 @@ class VQXYZDracoEncoderConfig:
     xyz: XYZQuantInterframeCodecConfig = field(default_factory=XYZQuantInterframeCodecConfig)
     zstd_level: int = 7
     draco_level: int = 0
-    qp: int = 0
-    qscale: int = 0
-    qrotation: int = 0
-    qopacity: int = 0
-    qfeaturedc: int = 0
-    qfeaturerest: int = 0
+    qp: int = 30
+    qscale: int = 30
+    qrotation: int = 30
+    qopacity: int = 30
+    qfeaturedc: int = 30
+    qfeaturerest: int = 30
     payload_device: Optional[str] = None
 
 

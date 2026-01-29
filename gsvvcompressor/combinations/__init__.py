@@ -14,6 +14,7 @@ from .registry import (
 # Import to trigger registration
 from . import vq_xyz_zstd
 from . import vq_xyz_1mask_zstd
+from . import vq_xyz_draco
 
 from .vq_xyz_zstd import (
     VQXYZZstdEncoderConfig,
@@ -28,6 +29,14 @@ from .vq_xyz_1mask_zstd import (
     VQXYZ1MaskZstdDecoder,
     build_vqxyz1maskzstd_encoder,
     build_vqxyz1maskzstd_decoder,
+)
+from .vq_xyz_draco import (
+    VQXYZDracoEncoderConfig,
+    VQXYZDracoDecoderConfig,
+    VQXYZDracoEncoder,
+    VQXYZDracoDecoder,
+    build_vqxyzdraco_encoder,
+    build_vqxyzdraco_decoder,
 )
 
 __all__ = [
@@ -49,4 +58,11 @@ __all__ = [
     "VQXYZ1MaskZstdDecoder",
     "build_vqxyz1maskzstd_encoder",
     "build_vqxyz1maskzstd_decoder",
+    # VQ + XYZ + Draco
+    "VQXYZDracoEncoderConfig",
+    "VQXYZDracoDecoderConfig",
+    "VQXYZDracoEncoder",
+    "VQXYZDracoDecoder",
+    "build_vqxyzdraco_encoder",
+    "build_vqxyzdraco_decoder",
 ]
