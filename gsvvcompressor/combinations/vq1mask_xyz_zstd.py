@@ -18,7 +18,7 @@ from .registry import register_encoder, register_decoder
 from .vq_xyz import VQXYZQuantMergeMaskInterframeCodecInterface
 
 
-def VQ1MaskXYZZstdEncoder(
+def VQXYZ1MaskZstdEncoder(
     vq_config: VQInterframeCodecConfig,
     xyz_config: XYZQuantInterframeCodecConfig,
     zstd_level: int = 7,
@@ -38,7 +38,7 @@ def VQ1MaskXYZZstdEncoder(
     )
 
 
-def VQ1MaskXYZZstdDecoder(
+def VQXYZ1MaskZstdDecoder(
     payload_device: Optional[str] = None,
 ) -> InterframeDecoder:
     """Create a decoder for VQ + XYZ quantization with merged mask + Zstd compressed data."""
@@ -52,7 +52,7 @@ def VQ1MaskXYZZstdDecoder(
 
 
 @dataclass
-class VQ1MaskXYZZstdEncoderConfig:
+class VQXYZ1MaskZstdEncoderConfig:
     """Configuration for VQ + XYZ (merged mask) + Zstd encoder."""
     vq: VQInterframeCodecConfig = field(default_factory=VQInterframeCodecConfig)
     xyz: XYZQuantInterframeCodecConfig = field(default_factory=XYZQuantInterframeCodecConfig)
@@ -61,14 +61,14 @@ class VQ1MaskXYZZstdEncoderConfig:
 
 
 @dataclass
-class VQ1MaskXYZZstdDecoderConfig:
+class VQXYZ1MaskZstdDecoderConfig:
     """Configuration for VQ + XYZ (merged mask) + Zstd decoder."""
     payload_device: Optional[str] = None
 
 
-def build_vq1maskxyzzstd_encoder(config: VQ1MaskXYZZstdEncoderConfig) -> InterframeEncoder:
+def build_vqxyz1maskzstd_encoder(config: VQXYZ1MaskZstdEncoderConfig) -> InterframeEncoder:
     """Build encoder from configuration."""
-    return VQ1MaskXYZZstdEncoder(
+    return VQXYZ1MaskZstdEncoder(
         vq_config=config.vq,
         xyz_config=config.xyz,
         zstd_level=config.zstd_level,
@@ -76,24 +76,24 @@ def build_vq1maskxyzzstd_encoder(config: VQ1MaskXYZZstdEncoderConfig) -> Interfr
     )
 
 
-def build_vq1maskxyzzstd_decoder(config: VQ1MaskXYZZstdDecoderConfig) -> InterframeDecoder:
+def build_vqxyz1maskzstd_decoder(config: VQXYZ1MaskZstdDecoderConfig) -> InterframeDecoder:
     """Build decoder from configuration."""
-    return VQ1MaskXYZZstdDecoder(
+    return VQXYZ1MaskZstdDecoder(
         payload_device=config.payload_device,
     )
 
 
 # Register
 register_encoder(
-    "vq1maskxyzzstd",
-    build_vq1maskxyzzstd_encoder,
-    VQ1MaskXYZZstdEncoderConfig,
+    "vqxyz1maskzstd",
+    build_vqxyz1maskzstd_encoder,
+    VQXYZ1MaskZstdEncoderConfig,
     "VQ + XYZ quantization (merged mask) + Zstd compression",
 )
 
 register_decoder(
-    "vq1maskxyzzstd",
-    build_vq1maskxyzzstd_decoder,
-    VQ1MaskXYZZstdDecoderConfig,
+    "vqxyz1maskzstd",
+    build_vqxyz1maskzstd_decoder,
+    VQXYZ1MaskZstdDecoderConfig,
     "VQ + XYZ quantization (merged mask) + Zstd decompression",
 )

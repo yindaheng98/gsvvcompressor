@@ -24,10 +24,10 @@ from .vq_xyz_zstd import (
     build_vqxyzzstd_decoder,
 )
 from .vq1mask_xyz_zstd import (
-    VQ1MaskXYZZstdEncoder,
-    VQ1MaskXYZZstdDecoder,
-    build_vq1maskxyzzstd_encoder,
-    build_vq1maskxyzzstd_decoder,
+    VQXYZ1MaskZstdEncoder,
+    VQXYZ1MaskZstdDecoder,
+    build_vqxyz1maskzstd_encoder,
+    build_vqxyz1maskzstd_decoder,
 )
 
 __all__ = [
@@ -45,8 +45,8 @@ __all__ = [
     "build_vqxyzzstd_encoder",
     "build_vqxyzzstd_decoder",
     # VQ (single merged mask) + XYZ + Zstd
-    "VQ1MaskXYZZstdEncoder",
-    "VQ1MaskXYZZstdDecoder",
-    "build_vq1maskxyzzstd_encoder",
-    "build_vq1maskxyzzstd_decoder",
+    "VQXYZ1MaskZstdEncoder",
+    "VQXYZ1MaskZstdDecoder",
+    "build_vqxyz1maskzstd_encoder",
+    "build_vqxyz1maskzstd_decoder",
 ]
