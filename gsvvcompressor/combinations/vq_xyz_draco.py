@@ -15,7 +15,6 @@ from ..draco.interface import (
 )
 from ..draco.serialize import DracoSerializer, DracoDeserializer
 from ..interframe.combine import (
-    CombinedInterframeCodecInterface,
     CombinedInterframeEncoderInitConfig,
     CombinedPayload,
 )
