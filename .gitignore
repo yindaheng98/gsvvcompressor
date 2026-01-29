@@ -1,3 +1,5 @@
+/gsvvcompressor/draco/draco_encoder*
+/gsvvcompressor/draco/draco_decoder*
 data
 output
 gaussian_splatting

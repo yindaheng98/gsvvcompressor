@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "cython", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -54,9 +54,6 @@ Homepage = "https://github.com/yindaheng98/gsvvcompressor"
 Documentation = "https://github.com/yindaheng98/gsvvcompressor#readme"
 Repository = "https://github.com/yindaheng98/gsvvcompressor"
 Issues = "https://github.com/yindaheng98/gsvvcompressor/issues"
-
-[project.scripts]
-gsvvcompressor = "gsvvcompressor.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["gsvvcompressor*"]
