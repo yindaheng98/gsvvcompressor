@@ -15,6 +15,12 @@
                 "input.subsequent_format='output/walking/refine/masked-propagate-dot-cotracker3/masked-propagate-dot-cotracker3/frame{:d}/point_cloud/iteration_1000/point_cloud.ply'",
                 "output.path=output/walking/refine/masked-propagate-dot-cotracker3.bin",
                 "output.overwrite=true",
+                "codec.vq.num_clusters_scaling=1024",
+                "codec.vq.num_clusters_rotation_re=256",
+                "codec.vq.num_clusters_rotation_im=1024",
+                "codec.vq.num_clusters_opacity=256",
+                "codec.vq.num_clusters_features_dc=512",
+                "codec.vq.num_clusters_features_rest=[256,128,64]",
             ]
         },
     ]
