@@ -7,7 +7,7 @@ Draco-compatible payloads for efficient compression.
 
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Self
+from typing import Optional, Self
 
 import numpy as np
 
@@ -35,6 +35,7 @@ class DracoPayload(Payload):
         features_dc: DC feature indices or values, shape (N, 1), dtype int32 for VQ indices
         features_rest: Rest feature indices or values, shape (N, 9),
             dtype int32 for VQ indices (3 sh_degrees * 3)
+        extra: Optional additional payload for codec-specific data not covered by Draco format
     """
     positions: np.ndarray  # (N, 3) float
     scales: np.ndarray  # (N, 1) int32
@@ -42,23 +43,30 @@ class DracoPayload(Payload):
     opacities: np.ndarray  # (N, 1) int32
     features_dc: np.ndarray  # (N, 1) int32
     features_rest: np.ndarray  # (N, 9) int32
+    extra: Optional[Payload] = None
 
     def to(self, device) -> Self:
         """
         Move the Payload to the specified device.
 
-        Since DracoPayload uses numpy arrays (CPU-only), this method
-        returns self unchanged. The device parameter is accepted for
-        interface compatibility but is ignored.
+        Since DracoPayload uses numpy arrays (CPU-only), only the extra
+        payload (if present) is moved to the target device.
 
         Args:
-            device: The target device (ignored for numpy arrays).
+            device: The target device (e.g., 'cpu', 'cuda', torch.device).
 
         Returns:
-            Self (DracoPayload uses numpy arrays which are always on CPU).
+            A new DracoPayload with the extra payload moved to the target device.
         """
-        # Numpy arrays are always on CPU, so we just return self
-        return self
+        return DracoPayload(
+            positions=self.positions,
+            scales=self.scales,
+            rotations=self.rotations,
+            opacities=self.opacities,
+            features_dc=self.features_dc,
+            features_rest=self.features_rest,
+            extra=self.extra.to(device) if self.extra is not None else None,
+        )
 
 
 class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
