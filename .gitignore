@@ -1,6 +1,7 @@
 data
 output
 gaussian_splatting
+gscompressor
 reduced_3dgs
 *.dist-info
 

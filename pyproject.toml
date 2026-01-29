@@ -7,13 +7,9 @@ name = "gsvvcompressor"
 version = "0.1.0"
 description = "A compression library for Gaussian Splatting video/volumetric data with vector quantization and inter-frame encoding"
 readme = "README.md"
-license = {text = "MIT"}
-authors = [
-    {name = "Howard Yin", email = "yindaheng98@gmail.com"}
-]
-maintainers = [
-    {name = "Howard Yin", email = "yindaheng98@gmail.com"}
-]
+license = { text = "MIT" }
+authors = [{ name = "Howard Yin", email = "yindaheng98@gmail.com" }]
+maintainers = [{ name = "Howard Yin", email = "yindaheng98@gmail.com" }]
 keywords = [
     "gaussian-splatting",
     "3dgs",
@@ -50,6 +46,7 @@ dependencies = [
     "omegaconf>=2.3.0",
     "gaussian_splatting @ git+https://github.com/yindaheng98/gaussian-splatting.git@master",
     "reduced_3dgs @ git+https://github.com/yindaheng98/reduced-3dgs.git@main",
+    "gscompressor @ git+https://github.com/yindaheng98/gscompressor.git@master",
 ]
 
 [project.urls]
