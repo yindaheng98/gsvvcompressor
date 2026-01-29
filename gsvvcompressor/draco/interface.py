@@ -1,20 +1,23 @@
 """
 Draco-capable interframe codec interface.
 
-This module provides a base interface for interframe codecs that can output
+This module provides interfaces for interframe codecs that can output
 Draco-compatible payloads for efficient compression.
 """
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, Self
 
 import numpy as np
 
+from gaussian_splatting import GaussianModel
+
 from ..payload import Payload
 from ..interframe.interface import (
     InterframeCodecInterface,
     InterframeCodecContext,
+    InterframeEncoderInitConfig,
 )
 
 
@@ -69,35 +72,22 @@ class DracoPayload(Payload):
         )
 
 
-class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
+class DracoInterframeCodecTranscodingInterface(ABC):
     """
-    Abstract interface for interframe codecs that output Draco-compatible payloads.
+    Abstract interface for transcoding between internal payloads and DracoPayload.
 
-    This interface extends InterframeCodecInterface to ensure that all encode/decode
-    methods work with DracoPayload. Subclasses must implement conversion methods
-    between their internal payload format and DracoPayload.
-
-    The workflow is:
-        Encoding:
-            1. Call super's encode method to get internal payload
-            2. Convert internal payload to DracoPayload via abstract conversion method
-
-        Decoding:
-            1. Convert DracoPayload to internal payload via abstract conversion method
-            2. Call super's decode method with internal payload
+    This interface defines the conversion methods needed to transform codec-specific
+    payloads to/from DracoPayload format. Implementations of this interface handle
+    the data format conversion without implementing the actual encoding/decoding logic.
     """
-
-    # =========================================================================
-    # Abstract conversion methods - must be implemented by subclasses
-    # =========================================================================
 
     @abstractmethod
     def interframe_payload_to_draco(self, payload: Payload) -> DracoPayload:
         """
-        Convert the output of encode_interframe to a DracoPayload.
+        Convert an interframe payload to a DracoPayload.
 
         Args:
-            payload: The internal payload from the parent class's encode_interframe.
+            payload: The internal payload from encode_interframe.
 
         Returns:
             A DracoPayload containing the data in Draco-compatible format.
@@ -107,10 +97,10 @@ class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
     @abstractmethod
     def keyframe_payload_to_draco(self, payload: Payload) -> DracoPayload:
         """
-        Convert the output of encode_keyframe to a DracoPayload.
+        Convert a keyframe payload to a DracoPayload.
 
         Args:
-            payload: The internal payload from the parent class's encode_keyframe.
+            payload: The internal payload from encode_keyframe.
 
         Returns:
             A DracoPayload containing the data in Draco-compatible format.
@@ -120,31 +110,65 @@ class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
     @abstractmethod
     def draco_to_interframe_payload(self, draco_payload: DracoPayload) -> Payload:
         """
-        Convert a DracoPayload to the internal payload format for decode_interframe.
+        Convert a DracoPayload to an interframe payload.
 
         Args:
             draco_payload: The DracoPayload to convert.
 
         Returns:
-            An internal payload suitable for the parent class's decode_interframe.
+            An internal payload suitable for decode_interframe.
         """
         pass
 
     @abstractmethod
     def draco_to_keyframe_payload(self, draco_payload: DracoPayload) -> Payload:
         """
-        Convert a DracoPayload to the internal payload format for decode_keyframe.
+        Convert a DracoPayload to a keyframe payload.
 
         Args:
             draco_payload: The DracoPayload to convert.
 
         Returns:
-            An internal payload suitable for the parent class's decode_keyframe.
+            An internal payload suitable for decode_keyframe.
         """
         pass
 
+
+class DracoInterframeCodecInterface(InterframeCodecInterface):
+    """
+    Interframe codec that wraps another codec and transcodes to/from DracoPayload.
+
+    This class uses composition to combine an InterframeCodecInterface (for the
+    actual encoding/decoding logic) with a DracoInterframeCodecTranscodingInterface
+    (for payload format conversion).
+
+    The workflow is:
+        Encoding:
+            1. Call inner codec's encode method to get internal payload
+            2. Convert internal payload to DracoPayload via transcoding interface
+
+        Decoding:
+            1. Convert DracoPayload to internal payload via transcoding interface
+            2. Call inner codec's decode method with internal payload
+    """
+
+    def __init__(
+        self,
+        codec: InterframeCodecInterface,
+        transcoder: DracoInterframeCodecTranscodingInterface,
+    ):
+        """
+        Initialize the DracoInterframeCodecInterface.
+
+        Args:
+            codec: The inner codec that performs actual encoding/decoding.
+            transcoder: The transcoding interface for payload conversion.
+        """
+        self._codec = codec
+        self._transcoder = transcoder
+
     # =========================================================================
-    # Overridden encode/decode methods that work with DracoPayload
+    # Encode/decode methods - transcode then delegate
     # =========================================================================
 
     def decode_interframe(
@@ -154,7 +178,7 @@ class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
         Decode a DracoPayload to reconstruct the next frame's context.
 
         This method first converts the DracoPayload to the internal format,
-        then delegates to the parent class's decode_interframe.
+        then delegates to the inner codec's decode_interframe.
 
         Args:
             payload: The DracoPayload containing the delta data.
@@ -163,8 +187,8 @@ class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
         Returns:
             The reconstructed context for the current frame.
         """
-        internal_payload = self.draco_to_interframe_payload(payload)
-        return super().decode_interframe(internal_payload, prev_context)
+        internal_payload = self._transcoder.draco_to_interframe_payload(payload)
+        return self._codec.decode_interframe(internal_payload, prev_context)
 
     def encode_interframe(
         self,
@@ -174,7 +198,7 @@ class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
         """
         Encode the difference between two consecutive frames as a DracoPayload.
 
-        This method delegates to the parent class's encode_interframe,
+        This method delegates to the inner codec's encode_interframe,
         then converts the result to a DracoPayload.
 
         Args:
@@ -184,15 +208,15 @@ class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
         Returns:
             A DracoPayload containing the delta information.
         """
-        internal_payload = super().encode_interframe(prev_context, next_context)
-        return self.interframe_payload_to_draco(internal_payload)
+        internal_payload = self._codec.encode_interframe(prev_context, next_context)
+        return self._transcoder.interframe_payload_to_draco(internal_payload)
 
     def decode_keyframe(self, payload: DracoPayload) -> InterframeCodecContext:
         """
         Decode a DracoPayload keyframe to create initial context.
 
         This method first converts the DracoPayload to the internal format,
-        then delegates to the parent class's decode_keyframe.
+        then delegates to the inner codec's decode_keyframe.
 
         Args:
             payload: The DracoPayload containing full keyframe data.
@@ -200,14 +224,14 @@ class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
         Returns:
             The context for the first/key frame.
         """
-        internal_payload = self.draco_to_keyframe_payload(payload)
-        return super().decode_keyframe(internal_payload)
+        internal_payload = self._transcoder.draco_to_keyframe_payload(payload)
+        return self._codec.decode_keyframe(internal_payload)
 
     def encode_keyframe(self, context: InterframeCodecContext) -> DracoPayload:
         """
         Encode the first frame as a DracoPayload keyframe.
 
-        This method delegates to the parent class's encode_keyframe,
+        This method delegates to the inner codec's encode_keyframe,
         then converts the result to a DracoPayload.
 
         Args:
@@ -216,5 +240,62 @@ class DracoCapableInterframeCodecInterface(InterframeCodecInterface):
         Returns:
             A DracoPayload containing the full keyframe data.
         """
-        internal_payload = super().encode_keyframe(context)
-        return self.keyframe_payload_to_draco(internal_payload)
+        internal_payload = self._codec.encode_keyframe(context)
+        return self._transcoder.keyframe_payload_to_draco(internal_payload)
+
+    # =========================================================================
+    # Other methods - delegate directly to inner codec
+    # =========================================================================
+
+    def keyframe_to_context(
+        self, frame: GaussianModel, init_config: InterframeEncoderInitConfig
+    ) -> InterframeCodecContext:
+        """
+        Convert a keyframe to a Context.
+
+        Delegates directly to the inner codec.
+
+        Args:
+            frame: The GaussianModel frame to convert.
+            init_config: Encoder initialization configuration.
+
+        Returns:
+            The corresponding Context representation.
+        """
+        return self._codec.keyframe_to_context(frame, init_config)
+
+    def interframe_to_context(
+        self,
+        frame: GaussianModel,
+        prev_context: InterframeCodecContext,
+    ) -> InterframeCodecContext:
+        """
+        Convert a frame to a Context using the previous context as reference.
+
+        Delegates directly to the inner codec.
+
+        Args:
+            frame: The GaussianModel frame to convert.
+            prev_context: The context from the previous frame.
+
+        Returns:
+            The corresponding Context representation.
+        """
+        return self._codec.interframe_to_context(frame, prev_context)
+
+    def context_to_frame(
+        self, context: InterframeCodecContext, frame: GaussianModel
+    ) -> GaussianModel:
+        """
+        Convert a Context back to a frame.
+
+        Delegates directly to the inner codec.
+
+        Args:
+            context: The Context to convert.
+            frame: An empty GaussianModel or one from previous pipeline steps.
+
+        Returns:
+            The modified GaussianModel with the frame data.
+        """
+        return self._codec.context_to_frame(context, frame)

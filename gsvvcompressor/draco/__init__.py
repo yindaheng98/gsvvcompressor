@@ -3,16 +3,22 @@ Draco-based compression for reduced 3DGS data.
 
 This module provides:
 - DracoPayload: Payload structure for Draco-compatible data
-- DracoCapableInterframeCodecInterface: Interface for codecs that output DracoPayload
+- DracoInterframeCodecTranscodingInterface: Abstract interface for payload transcoding
+- DracoInterframeCodecInterface: Wrapper codec that transcodes to/from DracoPayload
 - DracoSerializer/DracoDeserializer: Streaming serialization using Draco encoding
 """
 
-from .interface import DracoCapableInterframeCodecInterface, DracoPayload
+from .interface import (
+    DracoInterframeCodecInterface,
+    DracoInterframeCodecTranscodingInterface,
+    DracoPayload,
+)
 from .serialize import DracoDeserializer, DracoSerializer
 
 __all__ = [
     "DracoPayload",
-    "DracoCapableInterframeCodecInterface",
+    "DracoInterframeCodecTranscodingInterface",
+    "DracoInterframeCodecInterface",
     "DracoSerializer",
     "DracoDeserializer",
 ]
