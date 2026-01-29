@@ -130,7 +130,7 @@ class InterframeCodecInterface(ABC):
         pass
 
     def decode_interframe_for_encode(
-        self, payload: Payload, context: InterframeCodecContext
+        self, payload: Payload, prev_context: InterframeCodecContext
     ) -> InterframeCodecContext:
         """
         Decode an interframe payload during encoding to avoid error accumulation.
@@ -140,19 +140,18 @@ class InterframeCodecInterface(ABC):
         produce, which should be used as the reference for encoding subsequent
         frames instead of the original context.
 
-        Unlike `decode_interframe()`, this method may reuse data from the original
-        encoding context (passed as `context`) for
-        efficiency, since certain information may not need to be re-decoded
-        during encoding.
+        Unlike `decode_interframe()`, this method may reuse data from the previous
+        context for efficiency, since certain information (like codec parameters)
+        can be obtained from the context without re-decoding from the payload.
 
         Args:
             payload: The interframe payload that was just encoded.
-            context: The original context used for encoding this frame.
+            prev_context: The previous frame's context (reconstructed version).
 
         Returns:
             The reconstructed context as the decoder would produce it.
         """
-        return self.decode_interframe(payload, context)
+        return self.decode_interframe(payload, prev_context)
 
     @abstractmethod
     def encode_keyframe(self, context: InterframeCodecContext) -> Payload:

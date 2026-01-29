@@ -227,6 +227,44 @@ class DracoInterframeCodecInterface(InterframeCodecInterface):
         internal_payload = self._transcoder.draco_to_keyframe_payload(payload)
         return self._codec.decode_keyframe(internal_payload)
 
+    def decode_keyframe_for_encode(
+        self, payload: DracoPayload, context: InterframeCodecContext
+    ) -> InterframeCodecContext:
+        """
+        Decode a DracoPayload keyframe during encoding to avoid error accumulation.
+
+        This method first converts the DracoPayload to the internal format,
+        then delegates to the inner codec's decode_keyframe_for_encode.
+
+        Args:
+            payload: The DracoPayload that was just encoded.
+            context: The original context used for encoding this keyframe.
+
+        Returns:
+            The reconstructed context as the decoder would produce it.
+        """
+        internal_payload = self._transcoder.draco_to_keyframe_payload(payload)
+        return self._codec.decode_keyframe_for_encode(internal_payload, context)
+
+    def decode_interframe_for_encode(
+        self, payload: DracoPayload, prev_context: InterframeCodecContext
+    ) -> InterframeCodecContext:
+        """
+        Decode a DracoPayload interframe during encoding to avoid error accumulation.
+
+        This method first converts the DracoPayload to the internal format,
+        then delegates to the inner codec's decode_interframe_for_encode.
+
+        Args:
+            payload: The DracoPayload that was just encoded.
+            prev_context: The previous frame's context (reconstructed version).
+
+        Returns:
+            The reconstructed context as the decoder would produce it.
+        """
+        internal_payload = self._transcoder.draco_to_interframe_payload(payload)
+        return self._codec.decode_interframe_for_encode(internal_payload, prev_context)
+
     def encode_keyframe(self, context: InterframeCodecContext) -> DracoPayload:
         """
         Encode the first frame as a DracoPayload keyframe.

@@ -133,6 +133,54 @@ class CombinedInterframeCodecInterface(InterframeCodecInterface):
             contexts.append(context)
         return CombinedInterframeCodecContext(contexts=contexts)
 
+    def decode_keyframe_for_encode(
+        self, payload: CombinedPayload, context: CombinedInterframeCodecContext
+    ) -> CombinedInterframeCodecContext:
+        """
+        Decode a keyframe payload during encoding to avoid error accumulation.
+
+        Calls decode_keyframe_for_encode on all sub-codecs and combines their contexts.
+
+        Args:
+            payload: The keyframe payload containing individual payloads for each sub-codec.
+            context: The original context containing individual contexts for each sub-codec.
+
+        Returns:
+            A CombinedInterframeCodecContext containing all sub-codec reconstructed contexts.
+        """
+        # Call decode_keyframe_for_encode on each sub-codec
+        contexts = []
+        for interface, sub_payload, sub_context in zip(
+            self.interfaces, payload.payloads, context.contexts
+        ):
+            reconstructed = interface.decode_keyframe_for_encode(sub_payload, sub_context)
+            contexts.append(reconstructed)
+        return CombinedInterframeCodecContext(contexts=contexts)
+
+    def decode_interframe_for_encode(
+        self, payload: CombinedPayload, prev_context: CombinedInterframeCodecContext
+    ) -> CombinedInterframeCodecContext:
+        """
+        Decode an interframe payload during encoding to avoid error accumulation.
+
+        Calls decode_interframe_for_encode on all sub-codecs and combines their contexts.
+
+        Args:
+            payload: The interframe payload containing individual payloads for each sub-codec.
+            prev_context: The previous context containing individual contexts for each sub-codec.
+
+        Returns:
+            A CombinedInterframeCodecContext containing all sub-codec reconstructed contexts.
+        """
+        # Call decode_interframe_for_encode on each sub-codec
+        contexts = []
+        for interface, sub_payload, sub_prev_context in zip(
+            self.interfaces, payload.payloads, prev_context.contexts
+        ):
+            reconstructed = interface.decode_interframe_for_encode(sub_payload, sub_prev_context)
+            contexts.append(reconstructed)
+        return CombinedInterframeCodecContext(contexts=contexts)
+
     def encode_keyframe(
         self, context: CombinedInterframeCodecContext
     ) -> CombinedPayload:

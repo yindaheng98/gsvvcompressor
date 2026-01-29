@@ -57,11 +57,12 @@ class XYZQuantInterframeCodecContext(InterframeCodecContext):
     Attributes:
         quant_config: The quantization configuration (step_size, origin).
         quantized_xyz: The quantized xyz coordinates, shape (N, 3), dtype int32.
-        tolerance: Tolerance for inter-frame change detection.
+        tolerance: Tolerance for inter-frame change detection (encoder-only,
+            not used during decoding).
     """
     quant_config: XYZQuantConfig
     quantized_xyz: torch.Tensor  # shape (N, 3), dtype int32
-    tolerance: int = 0
+    tolerance: int = 0  # encoder-only
 
 
 @dataclass
@@ -74,11 +75,9 @@ class XYZQuantKeyframePayload(Payload):
     Attributes:
         quant_config: The quantization configuration.
         quantized_xyz: The quantized xyz coordinates.
-        tolerance: Tolerance for inter-frame change detection.
     """
     quant_config: XYZQuantConfig
     quantized_xyz: torch.Tensor
-    tolerance: int = 0
 
     def to(self, device) -> Self:
         """
@@ -96,7 +95,6 @@ class XYZQuantKeyframePayload(Payload):
                 origin=self.quant_config.origin.to(device),
             ),
             quantized_xyz=self.quantized_xyz.to(device),
-            tolerance=self.tolerance,
         )
 
 
@@ -166,7 +164,7 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
         return XYZQuantInterframeCodecContext(
             quant_config=prev_context.quant_config,
             quantized_xyz=new_quantized_xyz,
-            tolerance=prev_context.tolerance,
+            # tolerance is encoder-only, decoder doesn't use it
         )
 
     def encode_interframe(
@@ -214,7 +212,57 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
         return XYZQuantInterframeCodecContext(
             quant_config=payload.quant_config,
             quantized_xyz=payload.quantized_xyz,
-            tolerance=payload.tolerance,
+            # tolerance is encoder-only, decoder doesn't use it
+        )
+
+    def decode_keyframe_for_encode(
+        self,
+        payload: XYZQuantKeyframePayload,
+        context: XYZQuantInterframeCodecContext,
+    ) -> XYZQuantInterframeCodecContext:
+        """
+        Decode a keyframe payload during encoding to avoid error accumulation.
+
+        Since the encode/decode round-trip is lossless for XYZ quantization
+        (the quantized data is simply copied), we can reuse the original context.
+        This preserves context.tolerance which is needed by the encoder.
+
+        Args:
+            payload: The keyframe payload that was just encoded.
+            context: The original context used for encoding this keyframe.
+
+        Returns:
+            The reconstructed context (same as original for this codec).
+        """
+        # Round-trip is lossless, reuse original context (including tolerance)
+        return context
+
+    def decode_interframe_for_encode(
+        self,
+        payload: XYZQuantInterframePayload,
+        prev_context: XYZQuantInterframeCodecContext,
+    ) -> XYZQuantInterframeCodecContext:
+        """
+        Decode an interframe payload during encoding to avoid error accumulation.
+
+        Similar to decode_interframe, but preserves tolerance from prev_context
+        since it's needed by the encoder for subsequent frames.
+
+        Args:
+            payload: The interframe payload that was just encoded.
+            prev_context: The previous frame's context (reconstructed version).
+
+        Returns:
+            The reconstructed context with tolerance preserved.
+        """
+        # Clone previous quantized_xyz and apply changes
+        new_quantized_xyz = prev_context.quantized_xyz.clone()
+        new_quantized_xyz[payload.xyz_mask] = payload.quantized_xyz
+
+        return XYZQuantInterframeCodecContext(
+            quant_config=prev_context.quant_config,
+            quantized_xyz=new_quantized_xyz,
+            tolerance=prev_context.tolerance,  # preserve for encoder
         )
 
     def encode_keyframe(self, context: XYZQuantInterframeCodecContext) -> XYZQuantKeyframePayload:
@@ -230,7 +278,7 @@ class XYZQuantInterframeCodecInterface(InterframeCodecInterface):
         return XYZQuantKeyframePayload(
             quant_config=context.quant_config,
             quantized_xyz=context.quantized_xyz,
-            tolerance=context.tolerance,
+            # tolerance is encoder-only, not needed in payload
         )
 
     def keyframe_to_context(

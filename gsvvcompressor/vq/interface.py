@@ -187,6 +187,27 @@ class VQInterframeCodecInterface(InterframeCodecInterface):
             max_sh_degree=payload.max_sh_degree,
         )
 
+    def decode_keyframe_for_encode(
+        self,
+        payload: VQKeyframePayload,
+        context: VQInterframeCodecContext,
+    ) -> VQInterframeCodecContext:
+        """
+        Decode a keyframe payload during encoding to avoid error accumulation.
+
+        Since the encode/decode round-trip is lossless for VQ
+        (the IDs and codebook are simply copied), we can reuse the original context.
+
+        Args:
+            payload: The keyframe payload that was just encoded.
+            context: The original context used for encoding this keyframe.
+
+        Returns:
+            The reconstructed context (same as original for this codec).
+        """
+        # Round-trip is lossless, reuse original context
+        return context
+
     def encode_keyframe(self, context: VQInterframeCodecContext) -> VQKeyframePayload:
         """
         Encode the first frame as a keyframe.
