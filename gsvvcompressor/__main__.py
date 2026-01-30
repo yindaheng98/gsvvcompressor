@@ -130,8 +130,8 @@ def do_encode(cfg: DictConfig, codec_name: str) -> None:
     logger.info(f"  Output: {cfg.output.path}")
 
     # Read frames and encode
-    frame_stream = frame_reader.read()
-    encoded_stream = iter_with_progress(encoder.encode_stream(frame_stream), "Encoding frame")
+    frame_stream = iter_with_progress(frame_reader.read(), "Reading frame")
+    encoded_stream = iter_with_progress(encoder.encode_stream(frame_stream), "Encoding chunk")
 
     # Write encoded bytes with size logging
     bytes_writer.write(iter_with_size_logging(encoded_stream, "Writing chunk"))
