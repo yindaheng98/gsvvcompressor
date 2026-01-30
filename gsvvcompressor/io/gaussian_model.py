@@ -28,31 +28,33 @@ class FrameReader:
         subsequent_format: str,
         start_index: int,
         sh_degree: int = 3,
+        max_frames: int | None = None,
     ):
         self._first_frame_path = first_frame_path
         self._subsequent_format = subsequent_format
         self._start_index = start_index
         self._sh_degree = sh_degree
+        self._max_frames = max_frames
 
     def read(self) -> Iterator[GaussianModel]:
         """Read GaussianModel frames from the file sequence."""
-        if not os.path.exists(self._first_frame_path):
-            raise FileNotFoundError(
-                f"First frame file not found: {self._first_frame_path}"
-            )
-
         model = GaussianModel(sh_degree=self._sh_degree)
         model.load_ply(self._first_frame_path)
         yield model
 
+        frame_count = 1
+        if self._max_frames is not None and frame_count >= self._max_frames:
+            return
+
         index = self._start_index
         while True:
             path = self._subsequent_format.format(index)
-            if not os.path.exists(path):
-                break
             model = GaussianModel(sh_degree=self._sh_degree)
             model.load_ply(path)
             yield model
+            frame_count += 1
+            if self._max_frames is not None and frame_count >= self._max_frames:
+                break
             index += 1
 
 

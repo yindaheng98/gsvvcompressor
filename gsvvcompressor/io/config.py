@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from omegaconf import MISSING
 from .gaussian_model import FrameReader, FrameWriter
@@ -12,6 +13,7 @@ class FrameReaderConfig:
     subsequent_format: str = MISSING
     start_index: int = 2
     sh_degree: int = 3
+    max_frames: Optional[int] = None
 
 
 @dataclass
@@ -30,6 +32,7 @@ def build_frame_reader(config: FrameReaderConfig) -> FrameReader:
         subsequent_format=config.subsequent_format,
         start_index=config.start_index,
         sh_degree=config.sh_degree,
+        max_frames=config.max_frames,
     )
 
 
