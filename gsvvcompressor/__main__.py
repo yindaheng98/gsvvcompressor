@@ -131,7 +131,7 @@ def do_encode(cfg: DictConfig, codec_name: str) -> None:
 
     # Read frames and encode
     frame_stream = iter_with_progress(frame_reader.read(), "Reading frame")
-    encoded_stream = iter_with_progress(encoder.encode_stream(frame_stream), "Encoding chunk")
+    encoded_stream = iter_with_progress(encoder.encode_stream(frame_stream), "Encoded chunk")
 
     # Write encoded bytes with size logging
     bytes_writer.write(iter_with_size_logging(encoded_stream, "Writing chunk"))
@@ -155,11 +155,11 @@ def do_decode(cfg: DictConfig, codec_name: str) -> None:
     logger.info(f"  Output: {cfg.output.first_frame_path}")
 
     # Read bytes and decode
-    bytes_stream = bytes_reader.read()
-    decoded_stream = iter_with_progress(decoder.decode_stream(bytes_stream), "Decoding frame")
+    bytes_stream = iter_with_size_logging(bytes_reader.read(), "Reading chunk")
+    decoded_stream = iter_with_progress(decoder.decode_stream(bytes_stream), "Decoded chunk")
 
     # Write decoded frames
-    frame_writer.write(decoded_stream)
+    frame_writer.write(iter_with_progress(decoded_stream, "Writing frame"))
 
     logger.info("Decoding complete!")
 

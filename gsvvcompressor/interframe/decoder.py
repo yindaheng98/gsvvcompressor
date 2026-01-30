@@ -50,7 +50,7 @@ class InterframeDecoder(AbstractDecoder):
         Returns:
             An empty GaussianModel instance.
         """
-        return GaussianModel()
+        return GaussianModel(sh_degree=3)
 
     def unpack(self, payload: Payload) -> Iterator[GaussianModel]:
         """
