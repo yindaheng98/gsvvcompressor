@@ -35,9 +35,23 @@
                 "decode",
                 "vqxyzdraco2pass",
                 "input.path=output/walking/refine/masked-propagate-dot-cotracker3.bin",
-                "output.first_frame_path=output/walking/decoded/refine/masked-propagate-dot-cotracker3/frame1/point_cloud.ply",
-                "output.subsequent_format='output/walking/decoded/refine/masked-propagate-dot-cotracker3/frame{:d}/point_cloud.ply'",
+                "output.first_frame_path=output/walking/decoded/frame1/point_cloud/iteration_10000/point_cloud.ply",
+                "output.subsequent_format='output/walking/decoded/refine/masked-propagate-dot-cotracker3/frame{:d}/point_cloud/iteration_1000/point_cloud.ply'",
                 "output.overwrite=true",
+            ]
+        },
+        {
+            "name": "movecameras",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "gsvvcompressor.movecameras",
+            "console": "integratedTerminal",
+            "args": [
+                "--first-frame-in=output/walking/frame1",
+                "--first-frame-out=output/walking/decoded/frame1",
+                "--subsequent-format-in=output/walking/refine/masked-propagate-dot-cotracker3/frame{:d}",
+                "--subsequent-format-out=output/walking/decoded/refine/masked-propagate-dot-cotracker3/frame{:d}",
+                "--max-frames=30",
             ]
         },
     ]

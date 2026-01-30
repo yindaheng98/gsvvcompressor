@@ -156,7 +156,7 @@ def do_decode(cfg: DictConfig, codec_name: str) -> None:
 
     # Read bytes and decode
     bytes_stream = iter_with_size_logging(bytes_reader.read(), "Reading chunk")
-    decoded_stream = iter_with_progress(decoder.decode_stream(bytes_stream), "Decoded chunk")
+    decoded_stream = iter_with_progress(decoder.decode_stream(bytes_stream), "Decoded frame")
 
     # Write decoded frames
     frame_writer.write(iter_with_progress(decoded_stream, "Writing frame"))
