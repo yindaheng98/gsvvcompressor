@@ -4,7 +4,7 @@ from typing import Dict, Self
 import torch
 
 from gaussian_splatting import GaussianModel
-from reduced_3dgs.quantization import VectorQuantizer
+from reduced_3dgs.quantization import ExcludeZeroSHQuantizer as VectorQuantizer
 
 from ..payload import Payload
 from ..interframe import InterframeEncoderInitConfig, InterframeCodecContext, InterframeCodecInterface
