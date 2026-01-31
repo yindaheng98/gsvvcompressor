@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gsvvcompressor"
-version = "0.1.0"
+version = "1.0.0"
 description = "A compression library for Gaussian Splatting video/volumetric data with vector quantization and inter-frame encoding"
 readme = "README.md"
 license = { text = "MIT" }

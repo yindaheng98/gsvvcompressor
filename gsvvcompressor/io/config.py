@@ -14,6 +14,7 @@ class FrameReaderConfig:
     start_index: int = 2
     sh_degree: int = 3
     max_frames: Optional[int] = None
+    device: Optional[str] = None
 
 
 @dataclass
@@ -33,6 +34,7 @@ def build_frame_reader(config: FrameReaderConfig) -> FrameReader:
         start_index=config.start_index,
         sh_degree=config.sh_degree,
         max_frames=config.max_frames,
+        device=config.device,
     )
 
 

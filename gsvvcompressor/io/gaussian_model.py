@@ -5,6 +5,7 @@ Frame reader and writer classes for GaussianModel sequences.
 import os
 from typing import Iterator
 
+import torch
 from gaussian_splatting import GaussianModel
 
 
@@ -16,7 +17,8 @@ class FrameReader:
         reader = FrameReader(
             first_frame_path="data/frame_0000.ply",
             subsequent_format="data/frame_{:04d}.ply",
-            start_index=1
+            start_index=1,
+            device="cuda"
         )
         for frame in reader.read():
             process(frame)
@@ -29,17 +31,34 @@ class FrameReader:
         start_index: int,
         sh_degree: int = 3,
         max_frames: int | None = None,
+        device: str | torch.device | None = None,
     ):
         self._first_frame_path = first_frame_path
         self._subsequent_format = subsequent_format
         self._start_index = start_index
         self._sh_degree = sh_degree
         self._max_frames = max_frames
+        self._device = device
+
+    def to(self, device: str | torch.device | None) -> "FrameReader":
+        """Set the device for loaded models.
+
+        Args:
+            device: The device to move models to after loading.
+                    Can be a string like "cuda" or "cpu", a torch.device, or None.
+
+        Returns:
+            self for method chaining.
+        """
+        self._device = device
+        return self
 
     def read(self) -> Iterator[GaussianModel]:
         """Read GaussianModel frames from the file sequence."""
         model = GaussianModel(sh_degree=self._sh_degree)
         model.load_ply(self._first_frame_path)
+        if self._device is not None:
+            model.to(self._device)
         yield model
 
         frame_count = 1
@@ -51,6 +70,8 @@ class FrameReader:
             path = self._subsequent_format.format(index)
             model = GaussianModel(sh_degree=self._sh_degree)
             model.load_ply(path)
+            if self._device is not None:
+                model.to(self._device)
             yield model
             frame_count += 1
             if self._max_frames is not None and frame_count >= self._max_frames:
