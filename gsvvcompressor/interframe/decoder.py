@@ -1,5 +1,7 @@
 from typing import Iterator, Optional
 
+import torch
+
 from gaussian_splatting import GaussianModel
 
 from ..decoder import AbstractDecoder
@@ -21,7 +23,8 @@ class InterframeDecoder(AbstractDecoder):
         self,
         deserializer: AbstractDeserializer,
         interface: InterframeCodecInterface,
-        payload_device=None,
+        payload_device: str | torch.device | None = None,
+        device: str | torch.device | None = None,
     ):
         """
         Initialize the inter-frame decoder.
@@ -32,8 +35,10 @@ class InterframeDecoder(AbstractDecoder):
             payload_device: The target device for input Payloads before
                 unpacking (e.g., 'cpu', 'cuda'). If None, no device
                 transfer is performed.
+            device: The target device for output GaussianModel frames
+                (e.g., 'cpu', 'cuda'). If None, no device transfer is performed.
         """
-        super().__init__(deserializer, payload_device)
+        super().__init__(deserializer, payload_device, device)
         self._interface = interface
         self._prev_context: Optional[InterframeCodecContext] = None
 

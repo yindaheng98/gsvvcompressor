@@ -381,6 +381,7 @@ def VQXYZDracoEncoder(
 
 def VQXYZDracoDecoder(
     payload_device: Optional[str] = None,
+    device: Optional[str] = None,
 ) -> InterframeDecoder:
     """Create a decoder for VQ + XYZ quantization + Draco compressed data."""
 
@@ -399,6 +400,7 @@ def VQXYZDracoDecoder(
         deserializer=deserializer,
         interface=draco_interface,
         payload_device=payload_device,
+        device=device,
     )
 
 
@@ -422,6 +424,7 @@ class VQXYZDracoEncoderConfig:
 class VQXYZDracoDecoderConfig:
     """Configuration for VQ + XYZ + Draco decoder."""
     payload_device: Optional[str] = None
+    device: Optional[str] = None
 
 
 def build_vqxyzdraco_encoder(config: VQXYZDracoEncoderConfig) -> InterframeEncoder:
@@ -445,6 +448,7 @@ def build_vqxyzdraco_decoder(config: VQXYZDracoDecoderConfig) -> InterframeDecod
     """Build decoder from configuration."""
     return VQXYZDracoDecoder(
         payload_device=config.payload_device,
+        device=config.device,
     )
 
 

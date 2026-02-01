@@ -40,6 +40,7 @@ def VQXYZ1MaskZstdEncoder(
 
 def VQXYZ1MaskZstdDecoder(
     payload_device: Optional[str] = None,
+    device: Optional[str] = None,
 ) -> InterframeDecoder:
     """Create a decoder for VQ + XYZ quantization with merged mask + Zstd compressed data."""
     combined_interface = VQXYZQuantMergeMaskInterframeCodecInterface()
@@ -48,6 +49,7 @@ def VQXYZ1MaskZstdDecoder(
         deserializer=deserializer,
         interface=combined_interface,
         payload_device=payload_device,
+        device=device,
     )
 
 
@@ -64,6 +66,7 @@ class VQXYZ1MaskZstdEncoderConfig:
 class VQXYZ1MaskZstdDecoderConfig:
     """Configuration for VQ + XYZ (merged mask) + Zstd decoder."""
     payload_device: Optional[str] = None
+    device: Optional[str] = None
 
 
 def build_vqxyz1maskzstd_encoder(config: VQXYZ1MaskZstdEncoderConfig) -> InterframeEncoder:
@@ -80,6 +83,7 @@ def build_vqxyz1maskzstd_decoder(config: VQXYZ1MaskZstdDecoderConfig) -> Interfr
     """Build decoder from configuration."""
     return VQXYZ1MaskZstdDecoder(
         payload_device=config.payload_device,
+        device=config.device,
     )
 
 

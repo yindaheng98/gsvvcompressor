@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Iterator
+from typing import Iterator, Self
+
+import torch
 
 from gaussian_splatting import GaussianModel
 
@@ -20,7 +22,12 @@ class AbstractDecoder(ABC):
     deserialization format.
     """
 
-    def __init__(self, deserializer: AbstractDeserializer, payload_device=None):
+    def __init__(
+        self,
+        deserializer: AbstractDeserializer,
+        payload_device: str | torch.device | None = None,
+        device: str | torch.device | None = None,
+    ):
         """
         Initialize the decoder.
 
@@ -29,9 +36,25 @@ class AbstractDecoder(ABC):
             payload_device: The target device for input Payloads before
                 unpacking (e.g., 'cpu', 'cuda'). If None, no device
                 transfer is performed.
+            device: The target device for output GaussianModel frames
+                (e.g., 'cpu', 'cuda'). If None, no device transfer is performed.
         """
         self._deserializer = deserializer
         self._payload_device = payload_device
+        self._device = device
+
+    def to(self, device: str | torch.device | None) -> Self:
+        """Set the device for decoded models.
+
+        Args:
+            device: The device to move models to after decoding.
+                    Can be a string like "cuda" or "cpu", a torch.device, or None.
+
+        Returns:
+            self for method chaining.
+        """
+        self._device = device
+        return self
 
     @abstractmethod
     def unpack(self, payload: Payload) -> Iterator[GaussianModel]:
@@ -82,7 +105,10 @@ class AbstractDecoder(ABC):
         for payload in self._deserializer.deserialize_frame(data):
             if self._payload_device is not None:
                 payload = payload.to(self._payload_device)
-            yield from self.unpack(payload)
+            for model in self.unpack(payload):
+                if self._device is not None:
+                    model.to(self._device)
+                yield model
 
     def flush(self) -> Iterator[GaussianModel]:
         """
@@ -99,10 +125,16 @@ class AbstractDecoder(ABC):
         for payload in self._deserializer.flush():
             if self._payload_device is not None:
                 payload = payload.to(self._payload_device)
-            yield from self.unpack(payload)
+            for model in self.unpack(payload):
+                if self._device is not None:
+                    model.to(self._device)
+                yield model
 
         # Flush unpacking stage
-        yield from self.flush_unpack()
+        for model in self.flush_unpack():
+            if self._device is not None:
+                model.to(self._device)
+            yield model
 
     def decode_stream(self, stream: Iterator[bytes]) -> Iterator[GaussianModel]:
         """

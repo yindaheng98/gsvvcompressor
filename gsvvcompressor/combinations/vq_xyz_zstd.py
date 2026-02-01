@@ -41,6 +41,7 @@ def VQXYZZstdEncoder(
 
 def VQXYZZstdDecoder(
     payload_device: Optional[str] = None,
+    device: Optional[str] = None,
 ) -> InterframeDecoder:
     """Create a decoder for VQ + XYZ quantization + Zstd compressed data."""
     vq_interface = VQInterframeCodecInterface()
@@ -51,6 +52,7 @@ def VQXYZZstdDecoder(
         deserializer=deserializer,
         interface=combined_interface,
         payload_device=payload_device,
+        device=device,
     )
 
 
@@ -67,6 +69,7 @@ class VQXYZZstdEncoderConfig:
 class VQXYZZstdDecoderConfig:
     """Configuration for VQ + XYZ + Zstd decoder."""
     payload_device: Optional[str] = None
+    device: Optional[str] = None
 
 
 def build_vqxyzzstd_encoder(config: VQXYZZstdEncoderConfig) -> InterframeEncoder:
@@ -83,6 +86,7 @@ def build_vqxyzzstd_decoder(config: VQXYZZstdDecoderConfig) -> InterframeDecoder
     """Build decoder from configuration."""
     return VQXYZZstdDecoder(
         payload_device=config.payload_device,
+        device=config.device,
     )
 
 

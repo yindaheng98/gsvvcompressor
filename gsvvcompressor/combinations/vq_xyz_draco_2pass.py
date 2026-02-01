@@ -69,6 +69,7 @@ def VQXYZDraco2PassEncoder(
 
 def VQXYZDraco2PassDecoder(
     payload_device: Optional[str] = None,
+    device: Optional[str] = None,
 ) -> InterframeDecoder:
     """Create a decoder for VQ + XYZ quantization + Two-Pass Draco compressed data."""
 
@@ -87,6 +88,7 @@ def VQXYZDraco2PassDecoder(
         deserializer=deserializer,
         interface=draco_interface,
         payload_device=payload_device,
+        device=device,
     )
 
 
@@ -110,6 +112,7 @@ class VQXYZDraco2PassEncoderConfig:
 class VQXYZDraco2PassDecoderConfig:
     """Configuration for VQ + XYZ + Two-Pass Draco decoder."""
     payload_device: Optional[str] = None
+    device: Optional[str] = None
 
 
 def build_vqxyzdraco2pass_encoder(config: VQXYZDraco2PassEncoderConfig) -> InterframeEncoder:
@@ -133,6 +136,7 @@ def build_vqxyzdraco2pass_decoder(config: VQXYZDraco2PassDecoderConfig) -> Inter
     """Build decoder from configuration."""
     return VQXYZDraco2PassDecoder(
         payload_device=config.payload_device,
+        device=config.device,
     )
 
 
