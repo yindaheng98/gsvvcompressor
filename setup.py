@@ -47,6 +47,7 @@ class CMakeBuild(build_ext):
         sourcedir = os.path.abspath(ext.sourcedir)
         cmake_args = [
             "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
         ]
         subprocess.check_call(
             ["cmake", sourcedir, *cmake_args], cwd=build_temp
