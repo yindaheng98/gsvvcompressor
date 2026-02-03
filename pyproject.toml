@@ -44,9 +44,9 @@ dependencies = [
     "zstandard>=0.18.0",
     "hydra-core>=1.3.0",
     "omegaconf>=2.3.0",
-    "gaussian_splatting @ git+https://github.com/yindaheng98/gaussian-splatting.git@master",
-    "reduced_3dgs @ git+https://github.com/yindaheng98/reduced-3dgs.git@main",
-    "gscompressor @ git+https://github.com/yindaheng98/gscompressor.git@master",
+    "gaussian-splatting",
+    "reduced-3dgs",
+    "gscompressor",
 ]
 
 [project.urls]
